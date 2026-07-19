@@ -1,0 +1,5 @@
+.DS_Store
+.codex-work/
+outputs/
+node_modules/
+*.log

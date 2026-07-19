@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Private bilingual dashboard for completed laboratory analysis results."
+    />
+    <meta name="theme-color" content="#f45800" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Lab Analysis Dashboard | Zoetis</title>
+    <link rel="icon" href="./assets/zoetis-logo.png" type="image/png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script
+      src="https://accounts.google.com/gsi/client"
+      async
+      defer
+      data-purpose="google.accounts.oauth2"
+    ></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#dashboard-main" data-i18n="skip">Skip to dashboard</a>
+
+    <header class="topbar">
+      <div class="brand-lockup" aria-label="Zoetis lab analysis dashboard">
+        <span class="logo-window">
+          <img src="./assets/zoetis-logo.png" alt="Zoetis" />
+        </span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-copy">
+          <strong data-i18n="brandTitle">Lab Analysis</strong>
+          <span data-i18n="brandSubtitle">Intelligence dashboard</span>
+        </span>
+      </div>
+
+      <nav class="top-actions" aria-label="Dashboard controls">
+        <span class="connection-pill" id="connectionPill" data-state="offline">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="connectionText" data-i18n="notConnected">Not connected</span>
+        </span>
+        <button class="icon-button" id="refreshButton" type="button" disabled>
+          <span class="refresh-icon" aria-hidden="true">↻</span>
+          <span data-i18n="refresh">Refresh</span>
+        </button>
+        <button class="language-button" id="languageButton" type="button">
+          <span aria-hidden="true">ع</span>
+          <span id="languageButtonLabel">العربية</span>
+        </button>
+        <button class="text-button hidden" id="signOutButton" type="button" data-i18n="signOut">
+          Disconnect
+        </button>
+      </nav>
+    </header>
+
+    <main id="dashboard-main">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow" data-i18n="eyebrow">Laboratory performance</p>
+          <h1 data-i18n="heroTitle">Completed tests, clearly connected.</h1>
+          <p class="hero-description" data-i18n="heroDescription">
+            A secure, live view of completed diagnostic work across customers,
+            categories, and pathogens.
+          </p>
+          <div class="freshness-row">
+            <span class="live-marker" aria-hidden="true"></span>
+            <span data-i18n="lastUpdated">Last updated</span>
+            <strong id="lastUpdatedValue" data-i18n="notYet">Not yet</strong>
+            <span class="freshness-separator" aria-hidden="true">•</span>
+            <span data-i18n="autoRefresh">Refreshes every 30 seconds</span>
+          </div>
+        </div>
+
+        <aside class="privacy-card">
+          <span class="shield-mark" aria-hidden="true">✓</span>
+          <div>
+            <strong data-i18n="privateTitle">Private by design</strong>
+            <p data-i18n="privateDescription">
+              Data loads only after Google verifies that your account can open
+              the source Sheet.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="access-panel" id="accessPanel" aria-labelledby="accessTitle">
+        <div class="access-illustration" aria-hidden="true">
+          <span class="sheet-card sheet-card-back"></span>
+          <span class="sheet-card sheet-card-front">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span class="lock-dot">✓</span>
+        </div>
+        <div class="access-copy">
+          <p class="eyebrow" data-i18n="secureAccess">Secure access</p>
+          <h2 id="accessTitle" data-i18n="connectTitle">Connect your Google account</h2>
+          <p id="accessDescription" data-i18n="connectDescription">
+            Sign in with an account that has been granted access to the lab
+            results Sheet. The dashboard requests read-only permission.
+          </p>
+          <div class="access-actions">
+            <button class="primary-button" id="connectButton" type="button">
+              <span class="google-g" aria-hidden="true">G</span>
+              <span data-i18n="connectButton">Continue with Google</span>
+            </button>
+            <a class="secondary-link hidden" id="openSheetLink" target="_blank" rel="noreferrer">
+              <span data-i18n="openSheet">Open source Sheet</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <p class="access-note" id="accessNote" data-i18n="accessNote">
+            No laboratory data is stored in this website or its GitHub repository.
+          </p>
+        </div>
+      </section>
+
+      <div id="dashboardContent" class="dashboard-content hidden">
+        <section class="filter-panel" aria-labelledby="filterTitle">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow" data-i18n="explore">Explore</p>
+              <h2 id="filterTitle" data-i18n="filterTitle">Filter completed tests</h2>
+            </div>
+            <button class="reset-button" id="resetFiltersButton" type="button">
+              <span aria-hidden="true">×</span>
+              <span data-i18n="resetFilters">Reset filters</span>
+            </button>
+          </div>
+
+          <div class="filter-grid">
+            <label>
+              <span data-i18n="customer">Customer</span>
+              <select id="customerFilter">
+                <option value="" data-i18n="allCustomers">All customers</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="category">Test category</span>
+              <select id="categoryFilter">
+                <option value="" data-i18n="allCategories">All categories</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="pathogen">Pathogen / test detail</span>
+              <select id="detailFilter">
+                <option value="" data-i18n="allPathogens">All pathogens</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="year">Year</span>
+              <select id="yearFilter">
+                <option value="" data-i18n="allYears">All years</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="month">Month</span>
+              <select id="monthFilter">
+                <option value="" data-i18n="allMonths">All months</option>
+              </select>
+            </label>
+          </div>
+          <p class="filter-result" id="filterResult" aria-live="polite"></p>
+        </section>
+
+        <section class="kpi-section" aria-labelledby="overviewTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-i18n="atGlance">At a glance</p>
+              <h2 id="overviewTitle" data-i18n="overviewTitle">Completed work overview</h2>
+            </div>
+          </div>
+          <div class="kpi-grid">
+            <article class="kpi-card featured">
+              <span class="kpi-icon" aria-hidden="true">✓</span>
+              <span class="kpi-label" data-i18n="completedTests">Completed tests</span>
+              <strong id="completedMetric">—</strong>
+              <small data-i18n="uniqueTestIds">Unique test IDs</small>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-icon sample" aria-hidden="true">◎</span>
+              <span class="kpi-label" data-i18n="totalSamples">Total samples</span>
+              <strong id="samplesMetric">—</strong>
+              <small data-i18n="reportedSamples">Reported sample counts</small>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-icon customer" aria-hidden="true">◉</span>
+              <span class="kpi-label" data-i18n="uniqueCustomers">Unique customers</span>
+              <strong id="customersMetric">—</strong>
+              <small data-i18n="acrossSelection">Across current selection</small>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-icon farm" aria-hidden="true">⌂</span>
+              <span class="kpi-label" data-i18n="namedFarms">Named farms</span>
+              <strong id="farmsMetric">—</strong>
+              <small data-i18n="optionalFarmNames">Only populated farm names</small>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-icon pcr" aria-hidden="true">+</span>
+              <span class="kpi-label" data-i18n="pcrPositive">PCR positive rate</span>
+              <strong id="pcrMetric">—</strong>
+              <small data-i18n="reportedPcr">Positive vs. reported PCR</small>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-icon flag" aria-hidden="true">!</span>
+              <span class="kpi-label" data-i18n="qualityFlags">Quality flags</span>
+              <strong id="flagsMetric">—</strong>
+              <small data-i18n="reviewNotes">Tests with a review note</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="analytics-grid" aria-label="Analysis charts">
+          <article class="chart-card trend-card">
+            <div class="chart-heading">
+              <div>
+                <p class="eyebrow" data-i18n="trend">Trend</p>
+                <h2 data-i18n="monthlyTrend">Completed tests by month</h2>
+              </div>
+              <span class="chart-summary" id="trendSummary"></span>
+            </div>
+            <div class="chart-wrap">
+              <canvas
+                id="monthlyChart"
+                role="img"
+                aria-label="Completed laboratory tests by month"
+              ></canvas>
+              <p class="empty-chart hidden" id="monthlyEmpty" data-i18n="noChartData">
+                No completed tests match these filters.
+              </p>
+            </div>
+          </article>
+
+          <article class="chart-card mix-card">
+            <div class="chart-heading">
+              <div>
+                <p class="eyebrow" data-i18n="composition">Composition</p>
+                <h2 data-i18n="testMix">Test category mix</h2>
+              </div>
+            </div>
+            <div id="categoryBars" class="bar-list"></div>
+          </article>
+
+          <article class="chart-card pcr-card">
+            <div class="chart-heading">
+              <div>
+                <p class="eyebrow" data-i18n="outcomes">Outcomes</p>
+                <h2 data-i18n="pcrOutcomes">PCR results</h2>
+              </div>
+            </div>
+            <div class="donut-layout">
+              <div class="donut" id="pcrDonut" aria-hidden="true">
+                <span><strong id="pcrDonutValue">—</strong><small>PCR</small></span>
+              </div>
+              <div class="legend" id="pcrLegend"></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="table-card" aria-labelledby="recordsTitle">
+          <div class="section-heading table-heading">
+            <div>
+              <p class="eyebrow" data-i18n="details">Details</p>
+              <h2 id="recordsTitle" data-i18n="recentTests">Completed test register</h2>
+            </div>
+            <span id="tableCount" class="record-count"></span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="date">Date</th>
+                  <th scope="col" data-i18n="customer">Customer</th>
+                  <th scope="col" data-i18n="farm">Farm</th>
+                  <th scope="col" data-i18n="category">Test category</th>
+                  <th scope="col" data-i18n="pathogenShort">Pathogen / detail</th>
+                  <th scope="col" data-i18n="result">Result</th>
+                  <th scope="col" data-i18n="samples">Samples</th>
+                  <th scope="col" data-i18n="area">Area</th>
+                </tr>
+              </thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <p data-i18n="tableLimit">Showing the latest 100 matching tests.</p>
+            <a id="sheetFooterLink" target="_blank" rel="noreferrer">
+              <span data-i18n="openSheet">Open source Sheet</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <span>© 2026 Zoetis Services LLC</span>
+      <span data-i18n="privacyFooter">Laboratory data remains in Google Drive.</span>
+    </footer>
+
+    <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+    <div class="loading-overlay hidden" id="loadingOverlay" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <strong data-i18n="loading">Loading lab results…</strong>
+    </div>
+  </body>
+</html>

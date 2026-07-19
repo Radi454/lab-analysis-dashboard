@@ -26,6 +26,11 @@ assert.match(app, /spreadsheets\.readonly/);
 assert.match(app, /values:batchGet/);
 assert.match(app, /setInterval/);
 assert.match(config, /1KKZU6T2OikNZp6CdBm47uGwKiox7d_MxAHURMD8fx4E/);
+assert.match(
+  config,
+  /googleClientId:[\s\S]*"\d+-[a-z0-9]+\.apps\.googleusercontent\.com"/,
+);
+assert.doesNotMatch(config, /BEGIN PRIVATE KEY|client_secret|service_account/);
 assert.doesNotMatch(app, /\b(?:ELI|HIT|AST|BAC)-\d/);
 assert.doesNotMatch(html, /\b(?:ELI|HIT|AST|BAC)-\d/);
 

@@ -56,47 +56,18 @@
     <main id="dashboard-main">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="eyebrow">Laboratory performance</p>
-          <h1 data-i18n="heroTitle">Completed tests, clearly connected.</h1>
-          <p class="hero-description" data-i18n="heroDescription">
-            A secure, live view of completed diagnostic work across customers,
-            categories, and pathogens.
-          </p>
-          <div class="freshness-row">
-            <span class="live-marker" aria-hidden="true"></span>
-            <span data-i18n="lastUpdated">Last updated</span>
+          <h1 data-i18n="heroTitle">Completed lab analyses</h1>
+          <div class="freshness-row hidden" id="freshnessRow">
+            <span data-i18n="lastUpdated">Updated</span>
             <strong id="lastUpdatedValue" data-i18n="notYet">Not yet</strong>
-            <span class="freshness-separator" aria-hidden="true">•</span>
-            <span data-i18n="autoRefresh">Refreshes every 30 seconds</span>
           </div>
         </div>
-
-        <aside class="privacy-card">
-          <span class="shield-mark" aria-hidden="true">✓</span>
-          <div>
-            <strong data-i18n="privateTitle">Private by design</strong>
-            <p data-i18n="privateDescription">
-              Email/password access is checked against the private approved-user
-              list before any laboratory data is returned.
-            </p>
-          </div>
-        </aside>
       </section>
 
       <section class="access-panel" id="accessPanel" aria-labelledby="accessTitle">
-        <div class="access-illustration" aria-hidden="true">
-          <span class="sheet-card sheet-card-back"></span>
-          <span class="sheet-card sheet-card-front">
-            <i></i><i></i><i></i><i></i><i></i><i></i>
-          </span>
-          <span class="lock-dot">✓</span>
-        </div>
         <div class="access-copy">
-          <p class="eyebrow" data-i18n="secureAccess">Secure access</p>
-          <h2 id="accessTitle" data-i18n="signInTitle">Sign in to the lab dashboard</h2>
-          <p id="accessDescription" data-i18n="signInDescription">
-            Use the email approved by the administrator and your dashboard password.
-          </p>
+          <h2 id="accessTitle" data-i18n="signInTitle">Sign in to view results</h2>
+          <p class="hidden" id="accessDescription"></p>
           <form class="auth-form" id="authForm">
             <label id="emailLabel">
               <span data-i18n="email">Email</span>
@@ -133,9 +104,6 @@
             </button>
           </div>
           <p class="auth-message hidden" id="authMessage" role="status" aria-live="polite"></p>
-          <p class="access-note" id="accessNote" data-i18n="accessNote">
-            Only active emails in the administrator’s approved-user list can view results.
-          </p>
         </div>
       </section>
 
@@ -283,13 +251,7 @@
 
         <section class="history-card" aria-labelledby="historyTitle">
           <div class="section-heading history-heading">
-            <div>
-              <p class="eyebrow" data-i18n="historyEyebrow">What’s new</p>
-              <h2 id="historyTitle" data-i18n="historyTitle">Recently added results</h2>
-              <p data-i18n="historyDescription">
-                Latest completed results, grouped by test category and ordered newest first.
-              </p>
-            </div>
+            <h2 id="historyTitle" data-i18n="historyTitle">Recently added results</h2>
             <span class="record-count" id="historyCount"></span>
           </div>
           <div class="history-groups" id="recentHistory"></div>
@@ -297,31 +259,47 @@
 
         <section class="table-card" aria-labelledby="recordsTitle">
           <div class="section-heading table-heading">
-            <div>
-              <p class="eyebrow" data-i18n="details">Details</p>
-              <h2 id="recordsTitle" data-i18n="recentTests">Completed test register</h2>
-            </div>
+            <h2 id="recordsTitle">
+              <button
+                class="register-toggle"
+                id="registerToggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="registerPanel"
+              >
+                <span data-i18n="recentTests">Completed test register</span>
+                <span class="disclosure-icon" aria-hidden="true">⌄</span>
+              </button>
+            </h2>
             <span id="tableCount" class="record-count"></span>
           </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col" data-i18n="date">Date</th>
-                  <th scope="col" data-i18n="customer">Customer</th>
-                  <th scope="col" data-i18n="farm">Farm</th>
-                  <th scope="col" data-i18n="category">Test category</th>
-                  <th scope="col" data-i18n="pathogenShort">Pathogen / detail</th>
-                  <th scope="col" data-i18n="result">Result</th>
-                  <th scope="col" data-i18n="samples">Samples</th>
-                  <th scope="col" data-i18n="area">Area</th>
-                </tr>
-              </thead>
-              <tbody id="recordsBody"></tbody>
-            </table>
-          </div>
-          <div class="table-footer">
-            <p data-i18n="tableLimit">Showing the latest 100 matching tests.</p>
+          <div class="hidden" id="registerPanel">
+            <div
+              class="register-tabs"
+              id="registerTabs"
+              role="tablist"
+              aria-label="Test types"
+            ></div>
+            <div class="table-scroll" id="recordsTablePanel" role="tabpanel">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col" data-i18n="date">Date</th>
+                    <th scope="col" data-i18n="customer">Customer</th>
+                    <th scope="col" data-i18n="farm">Farm</th>
+                    <th scope="col" data-i18n="category">Test category</th>
+                    <th scope="col" data-i18n="pathogenShort">Pathogen / detail</th>
+                    <th scope="col" data-i18n="result">Result</th>
+                    <th scope="col" data-i18n="samples">Samples</th>
+                    <th scope="col" data-i18n="area">Area</th>
+                  </tr>
+                </thead>
+                <tbody id="recordsBody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <p data-i18n="tableLimit">Showing the latest 100 matching tests.</p>
+            </div>
           </div>
         </section>
       </div>
@@ -329,7 +307,6 @@
 
     <footer>
       <span>© 2026 Zoetis Services LLC</span>
-      <span data-i18n="privacyFooter">Private access • secured by approved-user permissions</span>
     </footer>
 
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>

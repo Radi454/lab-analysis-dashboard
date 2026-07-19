@@ -29,19 +29,11 @@ const translations = {
     refresh: "Refresh",
     signOut: "Sign out",
     eyebrow: "Laboratory performance",
-    heroTitle: "Completed tests, clearly connected.",
-    heroDescription:
-      "A secure, live view of completed diagnostic work across customers, categories, and pathogens.",
-    lastUpdated: "Last updated",
+    heroTitle: "Completed lab analyses",
+    lastUpdated: "Updated",
     notYet: "Not yet",
-    autoRefresh: "Refreshes every 30 seconds",
-    privateTitle: "Private by design",
-    privateDescription:
-      "Email/password access is checked against the private approved-user list before any laboratory data is returned.",
-    secureAccess: "Secure access",
-    signInTitle: "Sign in to the lab dashboard",
-    signInDescription:
-      "Use the email approved by the administrator and your dashboard password.",
+    signInTitle: "Sign in to view results",
+    signInDescription: "",
     email: "Email",
     password: "Password",
     newPassword: "New password",
@@ -55,11 +47,8 @@ const translations = {
     forgotPassword: "Forgot password?",
     updatePassword: "Save new password",
     backToSignIn: "Back to sign in",
-    accessNote:
-      "Only active emails in the administrator’s approved-user list can view results.",
     setupTitle: "Dashboard temporarily unavailable",
-    setupDescription: "The secure connection is not configured.",
-    setupNote: "Please contact the dashboard administrator.",
+    setupDescription: "Please contact the dashboard administrator.",
     accessDeniedTitle: "This email is not approved",
     accessDeniedDescription:
       "Ask the administrator to add or activate this email in the approved-user list.",
@@ -118,6 +107,8 @@ const translations = {
     recentCount: "{count} recent results",
     added: "Added",
     recordCount: "{count} records",
+    allTestTypes: "All",
+    testTypes: "Test types",
     date: "Date",
     farm: "Farm",
     pathogenShort: "Pathogen / detail",
@@ -128,7 +119,6 @@ const translations = {
     noResult: "Not reported",
     emptyTable: "No completed tests match the current filters.",
     tableLimit: "Showing the latest 100 matching tests.",
-    privacyFooter: "Private access • secured by approved-user permissions",
     loading: "Loading lab results…",
     refreshed: "Dashboard updated.",
     authExpired: "Your session expired. Sign in again.",
@@ -146,19 +136,11 @@ const translations = {
     refresh: "تحديث",
     signOut: "تسجيل الخروج",
     eyebrow: "أداء المعمل",
-    heroTitle: "الاختبارات المكتملة، بصورة أوضح.",
-    heroDescription:
-      "عرض حي وآمن للاختبارات التشخيصية المكتملة حسب العملاء والفئات ومسببات الأمراض.",
-    lastUpdated: "آخر تحديث",
+    heroTitle: "تحاليل المعمل المكتملة",
+    lastUpdated: "تم التحديث",
     notYet: "لم يتم بعد",
-    autoRefresh: "تحديث تلقائي كل 30 ثانية",
-    privateTitle: "خصوصية من أساس التصميم",
-    privateDescription:
-      "يتم التحقق من البريد الإلكتروني وكلمة المرور وقائمة المستخدمين المعتمدين قبل عرض أي بيانات معملية.",
-    secureAccess: "دخول آمن",
-    signInTitle: "سجّل الدخول إلى لوحة المعمل",
-    signInDescription:
-      "استخدم البريد الإلكتروني المعتمد من المسؤول وكلمة مرور لوحة المعلومات.",
+    signInTitle: "سجّل الدخول لعرض النتائج",
+    signInDescription: "",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     newPassword: "كلمة المرور الجديدة",
@@ -172,11 +154,8 @@ const translations = {
     forgotPassword: "نسيت كلمة المرور؟",
     updatePassword: "حفظ كلمة المرور الجديدة",
     backToSignIn: "العودة لتسجيل الدخول",
-    accessNote:
-      "يمكن فقط للبريد الإلكتروني النشط في قائمة المستخدمين المعتمدين عرض النتائج.",
     setupTitle: "لوحة المعلومات غير متاحة مؤقتاً",
-    setupDescription: "لم يتم إعداد الاتصال الآمن.",
-    setupNote: "يرجى التواصل مع مسؤول لوحة المعلومات.",
+    setupDescription: "يرجى التواصل مع مسؤول لوحة المعلومات.",
     accessDeniedTitle: "هذا البريد غير معتمد",
     accessDeniedDescription:
       "اطلب من المسؤول إضافة هذا البريد أو تفعيله في قائمة المستخدمين المعتمدين.",
@@ -235,6 +214,8 @@ const translations = {
     recentCount: "{count} نتيجة حديثة",
     added: "أضيفت",
     recordCount: "{count} سجل",
+    allTestTypes: "الكل",
+    testTypes: "أنواع التحاليل",
     date: "التاريخ",
     farm: "المزرعة",
     pathogenShort: "المسبب / التفاصيل",
@@ -245,7 +226,6 @@ const translations = {
     noResult: "غير مسجل",
     emptyTable: "لا توجد اختبارات مكتملة تطابق عوامل التصفية الحالية.",
     tableLimit: "عرض أحدث 100 اختبار مطابق.",
-    privacyFooter: "دخول خاص • محمي بصلاحيات المستخدمين المعتمدين",
     loading: "جارٍ تحميل نتائج المعمل…",
     refreshed: "تم تحديث لوحة المعلومات.",
     authExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
@@ -260,7 +240,6 @@ const elements = Object.fromEntries(
     "accessPanel",
     "accessTitle",
     "accessDescription",
-    "accessNote",
     "authForm",
     "emailLabel",
     "emailInput",
@@ -280,6 +259,7 @@ const elements = Object.fromEntries(
     "languageButton",
     "languageButtonLabel",
     "signOutButton",
+    "freshnessRow",
     "lastUpdatedValue",
     "customerFilter",
     "categoryFilter",
@@ -305,6 +285,9 @@ const elements = Object.fromEntries(
     "recentHistory",
     "tableCount",
     "recordsBody",
+    "registerToggle",
+    "registerPanel",
+    "registerTabs",
     "toast",
     "loadingOverlay",
   ].map((id) => [id, document.getElementById(id)]),
@@ -321,6 +304,9 @@ const state = {
   refreshTimer: null,
   toastTimer: null,
   resizeTimer: null,
+  registerExpanded: false,
+  registerCategory: "",
+  expandedHistoryCategories: new Set(),
 };
 
 let supabaseClient = null;
@@ -421,6 +407,11 @@ function showToast(message, kind = "info") {
   state.toastTimer = setTimeout(() => elements.toast.classList.add("hidden"), 4200);
 }
 
+function setAccessDescription(message = "") {
+  elements.accessDescription.textContent = message;
+  elements.accessDescription.classList.toggle("hidden", !message);
+}
+
 function showAuthMessage(message = "", kind = "info") {
   elements.authMessage.textContent = message;
   elements.authMessage.dataset.kind = kind;
@@ -449,13 +440,13 @@ function setAuthMode(mode) {
   elements.accessTitle.textContent = t(
     isRecovery ? "recoveryTitle" : isSignup ? "createTitle" : "signInTitle",
   );
-  elements.accessDescription.textContent = t(
+  setAccessDescription(t(
     isRecovery
       ? "recoveryDescription"
       : isSignup
         ? "createDescription"
         : "signInDescription",
-  );
+  ));
   showAuthMessage();
 }
 
@@ -469,33 +460,34 @@ function setLoading(loading, overlay = false) {
 function showSetupState() {
   elements.accessPanel.classList.remove("hidden");
   elements.dashboardContent.classList.add("hidden");
+  elements.freshnessRow.classList.add("hidden");
   elements.authForm.classList.add("hidden");
   elements.createAccountButton.classList.add("hidden");
   elements.forgotPasswordButton.classList.add("hidden");
   elements.accessTitle.textContent = t("setupTitle");
-  elements.accessDescription.textContent = t("setupDescription");
-  elements.accessNote.textContent = t("setupNote");
+  setAccessDescription(t("setupDescription"));
   setConnection("offline", "signedOut");
 }
 
 function showConnectState({ denied = false } = {}) {
   elements.accessPanel.classList.remove("hidden");
   elements.dashboardContent.classList.add("hidden");
+  elements.freshnessRow.classList.add("hidden");
   elements.authForm.classList.remove("hidden");
   elements.createAccountButton.classList.remove("hidden");
   elements.forgotPasswordButton.classList.remove("hidden");
   setAuthMode("signin");
   elements.accessTitle.textContent = t(denied ? "accessDeniedTitle" : "signInTitle");
-  elements.accessDescription.textContent = t(
+  setAccessDescription(t(
     denied ? "accessDeniedDescription" : "signInDescription",
-  );
-  elements.accessNote.textContent = t("accessNote");
+  ));
   setConnection(denied ? "error" : "offline", denied ? "connectionError" : "signedOut");
 }
 
 function showDashboard() {
   elements.accessPanel.classList.add("hidden");
   elements.dashboardContent.classList.remove("hidden");
+  elements.freshnessRow.classList.remove("hidden");
   elements.signOutButton.classList.remove("hidden");
   elements.userBadge.classList.remove("hidden");
   elements.userName.textContent =
@@ -777,13 +769,53 @@ function categoryChipStyle(category) {
   return { background: match[1], color: match[2] };
 }
 
+function renderRegisterTabs(records) {
+  const categories = categoryCounts(records).map((item) => item.label);
+  if (state.registerCategory && !categories.includes(state.registerCategory)) {
+    state.registerCategory = "";
+  }
+
+  elements.registerTabs.setAttribute("aria-label", t("testTypes"));
+  elements.registerTabs.replaceChildren();
+
+  const tabs = [
+    { value: "", label: t("allTestTypes") },
+    ...categories.map((category) => ({
+      value: category,
+      label: categoryLabel(category),
+    })),
+  ];
+
+  for (const tab of tabs) {
+    const button = document.createElement("button");
+    const selected = state.registerCategory === tab.value;
+    button.type = "button";
+    button.className = "register-tab";
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(selected));
+    button.setAttribute("tabindex", selected ? "0" : "-1");
+    button.setAttribute("aria-controls", "recordsTablePanel");
+    button.textContent = tab.label;
+    button.addEventListener("click", () => {
+      state.registerCategory = tab.value;
+      renderTable(state.filteredRecords);
+    });
+    elements.registerTabs.append(button);
+  }
+}
+
 function renderTable(records) {
+  renderRegisterTabs(records);
+  const visibleRecords = state.registerCategory
+    ? records.filter((record) => record.category === state.registerCategory)
+    : records;
+
   elements.recordsBody.replaceChildren();
   elements.tableCount.textContent = t("recordCount", {
-    count: formatNumber(records.length),
+    count: formatNumber(visibleRecords.length),
   });
 
-  if (!records.length) {
+  if (!visibleRecords.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.colSpan = 8;
@@ -794,7 +826,7 @@ function renderTable(records) {
     return;
   }
 
-  records.slice(0, 100).forEach((record) => {
+  visibleRecords.slice(0, 100).forEach((record) => {
     const row = document.createElement("tr");
 
     const dateCell = document.createElement("td");
@@ -870,20 +902,43 @@ function renderRecentHistory(records) {
     groups.get(record.category).push(record);
   }
 
+  let groupIndex = 0;
   for (const [category, items] of groups) {
     const group = document.createElement("article");
     group.className = "history-group";
 
-    const header = document.createElement("div");
+    const listId = `recent-history-${groupIndex}`;
+    const isExpanded = state.expandedHistoryCategories.has(category);
+    const header = document.createElement("button");
+    header.type = "button";
     header.className = "history-group-header";
+    header.setAttribute("aria-expanded", String(isExpanded));
+    header.setAttribute("aria-controls", listId);
     const title = document.createElement("strong");
     title.textContent = categoryLabel(category);
+    const meta = document.createElement("span");
+    meta.className = "history-group-meta";
     const count = document.createElement("span");
     count.textContent = formatNumber(items.length);
-    header.append(title, count);
+    const disclosure = document.createElement("span");
+    disclosure.className = "disclosure-icon";
+    disclosure.setAttribute("aria-hidden", "true");
+    disclosure.textContent = "⌄";
+    meta.append(count, disclosure);
+    header.append(title, meta);
 
     const list = document.createElement("div");
+    list.id = listId;
     list.className = "history-list";
+    list.classList.toggle("hidden", !isExpanded);
+
+    header.addEventListener("click", () => {
+      const expanded = header.getAttribute("aria-expanded") === "true";
+      header.setAttribute("aria-expanded", String(!expanded));
+      list.classList.toggle("hidden", expanded);
+      if (expanded) state.expandedHistoryCategories.delete(category);
+      else state.expandedHistoryCategories.add(category);
+    });
 
     for (const record of items) {
       const item = document.createElement("div");
@@ -911,7 +966,16 @@ function renderRecentHistory(records) {
 
     group.append(header, list);
     elements.recentHistory.append(group);
+    groupIndex += 1;
   }
+}
+
+function updateRegisterDisclosure() {
+  elements.registerToggle.setAttribute(
+    "aria-expanded",
+    String(state.registerExpanded),
+  );
+  elements.registerPanel.classList.toggle("hidden", !state.registerExpanded);
 }
 
 function render() {
@@ -1002,6 +1066,7 @@ function clearDashboardState() {
   state.filteredRecords = [];
   elements.signOutButton.classList.add("hidden");
   elements.userBadge.classList.add("hidden");
+  elements.freshnessRow.classList.add("hidden");
   elements.refreshButton.disabled = true;
 }
 
@@ -1165,6 +1230,29 @@ function bindEvents() {
   elements.refreshButton.addEventListener("click", () => loadData());
   elements.signOutButton.addEventListener("click", disconnect);
   elements.resetFiltersButton.addEventListener("click", resetFilters);
+  elements.registerToggle.addEventListener("click", () => {
+    state.registerExpanded = !state.registerExpanded;
+    updateRegisterDisclosure();
+  });
+  elements.registerTabs.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...elements.registerTabs.querySelectorAll('[role="tab"]')];
+    const currentIndex = tabs.indexOf(document.activeElement);
+    if (currentIndex < 0) return;
+
+    event.preventDefault();
+    const direction = document.documentElement.dir === "rtl" ? -1 : 1;
+    let nextIndex = currentIndex;
+    if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = tabs.length - 1;
+    else if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    } else {
+      nextIndex = (currentIndex - direction + tabs.length) % tabs.length;
+    }
+    tabs[nextIndex].click();
+    elements.registerTabs.querySelector('[aria-selected="true"]')?.focus();
+  });
 
   [
     elements.customerFilter,
@@ -1185,6 +1273,7 @@ function bindEvents() {
 async function initialize() {
   bindEvents();
   updateTranslations();
+  updateRegisterDisclosure();
 
   if (!isConfigured()) {
     showSetupState();

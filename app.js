@@ -5,8 +5,10 @@ import {
   completedTests,
   filterRecords,
   getFilterOptions,
+  matchingCustomers,
   monthlyCounts,
   normalizeDatabaseRows,
+  pathogenType,
   recentlyAdded,
   resultCounts,
 } from "./dashboard-core.js";
@@ -64,12 +66,17 @@ const translations = {
     resetFilters: "Reset filters",
     customer: "Customer",
     category: "Test category",
-    pathogen: "Pathogen / test detail",
+    pathogen: "Pathogen / disease",
     year: "Year",
     month: "Month",
     allCustomers: "All customers",
+    searchCustomers: "Search customers by name",
+    clearCustomer: "Clear customer",
+    noCustomers: "No matching customers",
     allCategories: "All categories",
     allPathogens: "All pathogens",
+    viral: "Viral",
+    bacterial: "Bacterial",
     allYears: "All years",
     allMonths: "All months",
     recordsMatch: "{count} completed tests match the current filters.",
@@ -125,6 +132,11 @@ const translations = {
     generalError: "The dashboard could not load the results. Please try again.",
     categoryAntibiotic: "Antibiotic Sensitivity",
     categoryBacteriology: "Bacteriology",
+    pathogenAdenovirus: "Adenovirus",
+    pathogenInfluenza: "Influenza",
+    pathogenPseudomonas: "Pseudomonas",
+    pathogenSalmonella: "Salmonella",
+    pathogenStaphylococcus: "Staphylococcus",
   },
   ar: {
     skip: "الانتقال إلى لوحة المعلومات",
@@ -171,12 +183,17 @@ const translations = {
     resetFilters: "إعادة ضبط التصفية",
     customer: "العميل",
     category: "فئة الاختبار",
-    pathogen: "المسبب المرضي / تفاصيل الاختبار",
+    pathogen: "المسبب المرضي / المرض",
     year: "السنة",
     month: "الشهر",
     allCustomers: "كل العملاء",
+    searchCustomers: "ابحث باسم العميل",
+    clearCustomer: "مسح العميل",
+    noCustomers: "لا يوجد عملاء مطابقون",
     allCategories: "كل الفئات",
     allPathogens: "كل المسببات",
+    viral: "فيروسية",
+    bacterial: "بكتيرية",
     allYears: "كل السنوات",
     allMonths: "كل الشهور",
     recordsMatch: "يوجد {count} اختبار مكتمل يطابق عوامل التصفية.",
@@ -232,6 +249,11 @@ const translations = {
     generalError: "تعذر تحميل النتائج. يرجى المحاولة مرة أخرى.",
     categoryAntibiotic: "حساسية المضادات الحيوية",
     categoryBacteriology: "البكتريولوجي",
+    pathogenAdenovirus: "الأدينو فيروس",
+    pathogenInfluenza: "الإنفلونزا",
+    pathogenPseudomonas: "السودوموناس",
+    pathogenSalmonella: "السالمونيلا",
+    pathogenStaphylococcus: "الستافيلوكوكس",
   },
 };
 
@@ -262,6 +284,8 @@ const elements = Object.fromEntries(
     "freshnessRow",
     "lastUpdatedValue",
     "customerFilter",
+    "clearCustomerButton",
+    "customerSuggestions",
     "categoryFilter",
     "detailFilter",
     "yearFilter",
@@ -307,6 +331,15 @@ const state = {
   registerExpanded: false,
   registerCategory: "",
   expandedHistoryCategories: new Set(),
+  customerOptions: [],
+  customerSuggestionIndex: -1,
+  filters: {
+    customer: "",
+    category: "",
+    detail: "",
+    year: "",
+    month: "",
+  },
 };
 
 let supabaseClient = null;
@@ -336,6 +369,17 @@ function categoryLabel(category) {
   if (category === "Antibiotic Sensitivity") return t("categoryAntibiotic");
   if (category === "Bacteriology") return t("categoryBacteriology");
   return category;
+}
+
+function pathogenLabel(pathogen) {
+  const labels = {
+    Adenovirus: "pathogenAdenovirus",
+    Influenza: "pathogenInfluenza",
+    Pseudomonas: "pathogenPseudomonas",
+    Salmonella: "pathogenSalmonella",
+    Staphylococcus: "pathogenStaphylococcus",
+  };
+  return labels[pathogen] ? t(labels[pathogen]) : pathogen;
 }
 
 function formatNumber(value, options = {}) {
@@ -376,6 +420,13 @@ function monthLabel(monthKey, format = "short") {
   }).format(new Date(`${year}-${month}-01T00:00:00Z`));
 }
 
+function monthName(month, format = "short") {
+  return new Intl.DateTimeFormat(state.language === "ar" ? "ar-EG" : "en-GB", {
+    month: format,
+    timeZone: "UTC",
+  }).format(new Date(`2026-${month}-01T00:00:00Z`));
+}
+
 function updateTranslations() {
   document.documentElement.lang = state.language;
   document.documentElement.dir = state.language === "ar" ? "rtl" : "ltr";
@@ -388,6 +439,12 @@ function updateTranslations() {
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
   });
 
   if (state.session) {
@@ -497,60 +554,237 @@ function showDashboard() {
   setConnection("online", "signedIn");
 }
 
-function populateSelect(select, values, firstLabel, display = (value) => value) {
-  const selected = select.value;
-  select.replaceChildren();
+function closeCustomerSuggestions() {
+  state.customerSuggestionIndex = -1;
+  elements.customerSuggestions.classList.add("hidden");
+  elements.customerFilter.setAttribute("aria-expanded", "false");
+  elements.customerFilter.removeAttribute("aria-activedescendant");
+}
 
-  const allOption = document.createElement("option");
-  allOption.value = "";
-  allOption.textContent = firstLabel;
-  select.append(allOption);
+function updateCustomerClearButton() {
+  elements.clearCustomerButton.classList.toggle(
+    "hidden",
+    !elements.customerFilter.value,
+  );
+}
 
-  for (const value of values) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = display(value);
-    select.append(option);
+function updateCustomerSuggestionActive(index) {
+  const options = [
+    ...elements.customerSuggestions.querySelectorAll('[role="option"]'),
+  ];
+  if (!options.length) {
+    state.customerSuggestionIndex = -1;
+    elements.customerFilter.removeAttribute("aria-activedescendant");
+    return;
   }
 
-  if ([...select.options].some((option) => option.value === selected)) {
-    select.value = selected;
+  state.customerSuggestionIndex =
+    (index + options.length) % options.length;
+  options.forEach((option, optionIndex) => {
+    const active = optionIndex === state.customerSuggestionIndex;
+    option.classList.toggle("active", active);
+    option.setAttribute("aria-selected", String(active));
+  });
+
+  const activeOption = options[state.customerSuggestionIndex];
+  elements.customerFilter.setAttribute(
+    "aria-activedescendant",
+    activeOption.id,
+  );
+  activeOption.scrollIntoView({ block: "nearest" });
+}
+
+function selectCustomer(customer) {
+  state.filters.customer = customer;
+  state.filters.detail = "";
+  elements.customerFilter.value = customer;
+  updateCustomerClearButton();
+  closeCustomerSuggestions();
+  populateFilters();
+  render();
+}
+
+function renderCustomerSuggestions() {
+  const matches = matchingCustomers(
+    state.customerOptions,
+    elements.customerFilter.value,
+  );
+  elements.customerSuggestions.replaceChildren();
+  state.customerSuggestionIndex = -1;
+  elements.customerFilter.removeAttribute("aria-activedescendant");
+
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "customer-suggestion-empty";
+    empty.textContent = t("noCustomers");
+    elements.customerSuggestions.append(empty);
+  } else {
+    matches.forEach((customer, index) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.id = `customer-option-${index}`;
+      option.className = "customer-suggestion";
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.textContent = customer;
+      option.addEventListener("pointerdown", (event) => event.preventDefault());
+      option.addEventListener("click", () => selectCustomer(customer));
+      elements.customerSuggestions.append(option);
+    });
+  }
+
+  elements.customerSuggestions.classList.remove("hidden");
+  elements.customerFilter.setAttribute("aria-expanded", "true");
+}
+
+function clearCustomerSelection({ keepFocus = false } = {}) {
+  state.filters.customer = "";
+  state.filters.detail = "";
+  elements.customerFilter.value = "";
+  closeCustomerSuggestions();
+  updateCustomerClearButton();
+  populateFilters();
+  render();
+  if (keepFocus) {
+    elements.customerFilter.focus();
+    renderCustomerSuggestions();
   }
 }
 
-function populateFilters() {
-  const options = getFilterOptions(state.allRecords);
-  populateSelect(
-    elements.customerFilter,
-    options.customers,
-    t("allCustomers"),
+function createFilterButton(value, label, selectionKey) {
+  const button = document.createElement("button");
+  const selected = state.filters[selectionKey] === value;
+  button.type = "button";
+  button.className = "filter-option";
+  button.dataset.value = value;
+  button.setAttribute("aria-pressed", String(selected));
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    state.filters[selectionKey] = value;
+    if (selectionKey === "category") state.filters.detail = "";
+    populateFilters();
+    render();
+  });
+  return button;
+}
+
+function populateButtonFilter(
+  container,
+  values,
+  selectionKey,
+  firstLabel,
+  display = (value) => value,
+) {
+  if (
+    state.filters[selectionKey] &&
+    !values.includes(state.filters[selectionKey])
+  ) {
+    state.filters[selectionKey] = "";
+  }
+
+  container.replaceChildren();
+  const options = [{ value: "", label: firstLabel }].concat(
+    values.map((value) => ({ value, label: display(value) })),
   );
-  populateSelect(
+
+  for (const option of options) {
+    container.append(
+      createFilterButton(option.value, option.label, selectionKey),
+    );
+  }
+}
+
+function populatePathogenFilter(values) {
+  if (state.filters.detail && !values.includes(state.filters.detail)) {
+    state.filters.detail = "";
+  }
+
+  elements.detailFilter.replaceChildren();
+
+  const allRow = document.createElement("div");
+  allRow.className = "filter-button-list pathogen-all-row";
+  allRow.append(createFilterButton("", t("allPathogens"), "detail"));
+  elements.detailFilter.append(allRow);
+
+  for (const type of ["viral", "bacterial"]) {
+    const typedValues = values.filter((value) => pathogenType(value) === type);
+    if (!typedValues.length) continue;
+
+    const group = document.createElement("section");
+    group.className = "pathogen-filter-group";
+    group.setAttribute("aria-labelledby", `pathogen-${type}-label`);
+
+    const label = document.createElement("h3");
+    label.id = `pathogen-${type}-label`;
+    label.className = `pathogen-group-label ${type}`;
+    label.textContent = t(type);
+
+    const list = document.createElement("div");
+    list.className = "filter-button-list";
+    for (const value of typedValues) {
+      list.append(
+        createFilterButton(value, pathogenLabel(value), "detail"),
+      );
+    }
+
+    group.append(label, list);
+    elements.detailFilter.append(group);
+  }
+}
+
+function populateFilters({ preserveCustomerQuery = false } = {}) {
+  const options = getFilterOptions(state.allRecords);
+  const customerQuery = elements.customerFilter.value;
+  state.customerOptions = options.customers;
+  if (
+    state.filters.customer &&
+    !state.customerOptions.includes(state.filters.customer)
+  ) {
+    state.filters.customer = "";
+  }
+  if (state.filters.customer) {
+    elements.customerFilter.value = state.filters.customer;
+  } else if (!preserveCustomerQuery) {
+    elements.customerFilter.value = "";
+  } else {
+    elements.customerFilter.value = customerQuery;
+  }
+  updateCustomerClearButton();
+
+  populateButtonFilter(
     elements.categoryFilter,
     options.categories,
+    "category",
     t("allCategories"),
     categoryLabel,
   );
-  populateSelect(elements.detailFilter, options.details, t("allPathogens"));
-  populateSelect(elements.yearFilter, options.years, t("allYears"));
+
+  const detailRecords = filterRecords(state.allRecords, {
+    customer: state.filters.customer,
+    category: state.filters.category,
+  });
+  populatePathogenFilter(getFilterOptions(detailRecords).details);
+  populateButtonFilter(
+    elements.yearFilter,
+    options.years,
+    "year",
+    t("allYears"),
+  );
 
   const months = Array.from({ length: 12 }, (_, index) =>
     String(index + 1).padStart(2, "0"),
   );
-  populateSelect(elements.monthFilter, months, t("allMonths"), (month) => {
-    const year = elements.yearFilter.value || "2026";
-    return monthLabel(`${year}-${month}`, "long");
-  });
+  populateButtonFilter(
+    elements.monthFilter,
+    months,
+    "month",
+    t("allMonths"),
+    (month) => monthName(month),
+  );
 }
 
 function currentFilters() {
-  return {
-    customer: elements.customerFilter.value,
-    category: elements.categoryFilter.value,
-    detail: elements.detailFilter.value,
-    year: elements.yearFilter.value,
-    month: elements.monthFilter.value,
-  };
+  return { ...state.filters };
 }
 
 function renderMetrics(records) {
@@ -662,7 +896,7 @@ function niceMaximum(value) {
 }
 
 function drawMonthlyChart(records) {
-  const series = monthlyCounts(records, elements.yearFilter.value);
+  const series = monthlyCounts(records, state.filters.year);
   const nonZero = series.filter((item) => item.value > 0);
   const canvas = elements.monthlyChart;
   const rect = canvas.getBoundingClientRect();
@@ -994,6 +1228,7 @@ function render() {
 
 function translateAndRender() {
   updateTranslations();
+  closeCustomerSuggestions();
   if (!isConfigured()) {
     showSetupState();
   } else if (!state.session) {
@@ -1203,15 +1438,16 @@ async function disconnect() {
 }
 
 function resetFilters() {
-  [
-    elements.customerFilter,
-    elements.categoryFilter,
-    elements.detailFilter,
-    elements.yearFilter,
-    elements.monthFilter,
-  ].forEach((select) => {
-    select.value = "";
-  });
+  elements.customerFilter.value = "";
+  closeCustomerSuggestions();
+  state.filters = {
+    customer: "",
+    category: "",
+    detail: "",
+    year: "",
+    month: "",
+  };
+  populateFilters();
   render();
 }
 
@@ -1254,13 +1490,63 @@ function bindEvents() {
     elements.registerTabs.querySelector('[aria-selected="true"]')?.focus();
   });
 
-  [
-    elements.customerFilter,
-    elements.categoryFilter,
-    elements.detailFilter,
-    elements.yearFilter,
-    elements.monthFilter,
-  ].forEach((select) => select.addEventListener("change", render));
+  elements.customerFilter.addEventListener("focus", () => {
+    renderCustomerSuggestions();
+  });
+  elements.customerFilter.addEventListener("input", () => {
+    const selectionChanged =
+      state.filters.customer !== elements.customerFilter.value;
+    if (selectionChanged && state.filters.customer) {
+      state.filters.customer = "";
+      state.filters.detail = "";
+      populateFilters({ preserveCustomerQuery: true });
+      render();
+    }
+    updateCustomerClearButton();
+    renderCustomerSuggestions();
+  });
+  elements.customerFilter.addEventListener("keydown", (event) => {
+    const options = [
+      ...elements.customerSuggestions.querySelectorAll('[role="option"]'),
+    ];
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (elements.customerSuggestions.classList.contains("hidden")) {
+        renderCustomerSuggestions();
+      }
+      const nextIndex =
+        state.customerSuggestionIndex < 0
+          ? event.key === "ArrowDown"
+            ? 0
+            : -1
+          : state.customerSuggestionIndex +
+            (event.key === "ArrowDown" ? 1 : -1);
+      updateCustomerSuggestionActive(
+        nextIndex,
+      );
+    } else if (
+      event.key === "Enter" &&
+      options.length &&
+      !elements.customerSuggestions.classList.contains("hidden")
+    ) {
+      event.preventDefault();
+      const index = Math.max(state.customerSuggestionIndex, 0);
+      options[index].click();
+    } else if (event.key === "Escape") {
+      if (state.filters.customer) {
+        elements.customerFilter.value = state.filters.customer;
+        updateCustomerClearButton();
+      }
+      closeCustomerSuggestions();
+    }
+  });
+  elements.customerFilter.addEventListener("blur", () => {
+    closeCustomerSuggestions();
+  });
+  elements.clearCustomerButton.addEventListener("click", () => {
+    clearCustomerSelection({ keepFocus: true });
+  });
 
   window.addEventListener("resize", () => {
     clearTimeout(state.resizeTimer);

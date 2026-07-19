@@ -36,8 +36,93 @@ export const SHEET_DEFINITIONS = Object.freeze([
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
 
+const PATHOGEN_GROUPS = new Map([
+  ["adeno", "Adenovirus"],
+  ["adenovirus", "Adenovirus"],
+  ["cav", "CAV"],
+  ["e coli", "E. coli"],
+  ["ibd", "IBD"],
+  ["ibdv", "IBD"],
+  ["ibdv def", "IBD"],
+  ["variant ibd", "IBD"],
+  ["vv ibd", "IBD"],
+  ["vp2", "IBD"],
+  ["vp3", "IBD"],
+  ["ibv", "IBV"],
+  ["ibv qx", "IBV"],
+  ["ilt", "ILT"],
+  ["influenza", "Influenza"],
+  ["influenza h5", "Influenza"],
+  ["influenza h9", "Influenza"],
+  ["matrix", "Influenza"],
+  ["mg", "MG"],
+  ["ms", "MS"],
+  ["ndv", "NDV"],
+  ["pseudomonas", "Pseudomonas"],
+  ["reo", "REO"],
+  ["reovirus", "REO"],
+  ["salmonella", "Salmonella"],
+  ["staphylococcus", "Staphylococcus"],
+]);
+
+const VIRAL_PATHOGENS = new Set([
+  "Adenovirus",
+  "CAV",
+  "IBD",
+  "IBV",
+  "ILT",
+  "Influenza",
+  "NDV",
+  "REO",
+]);
+
+const BACTERIAL_PATHOGENS = new Set([
+  "E. coli",
+  "MG",
+  "MS",
+  "Pseudomonas",
+  "Salmonella",
+  "Staphylococcus",
+]);
+
 function text(value) {
   return value == null ? "" : String(value).trim();
+}
+
+function normalizedKey(value) {
+  return text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function canonicalPathogen(value) {
+  return PATHOGEN_GROUPS.get(normalizedKey(value)) ?? "";
+}
+
+export function pathogenType(value) {
+  const pathogen = canonicalPathogen(value);
+  if (VIRAL_PATHOGENS.has(pathogen)) return "viral";
+  if (BACTERIAL_PATHOGENS.has(pathogen)) return "bacterial";
+  return "";
+}
+
+export function matchingCustomers(customers = [], query = "") {
+  const normalizedQuery = text(query).toLocaleLowerCase();
+  const uniqueCustomers = uniqueList(customers).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  if (!normalizedQuery) return uniqueCustomers;
+
+  return uniqueCustomers.filter((customer) => {
+    const normalizedCustomer = customer.toLocaleLowerCase();
+    return (
+      normalizedCustomer.startsWith(normalizedQuery) ||
+      normalizedCustomer
+        .split(/[^\p{L}\p{N}]+/u)
+        .some((part) => part.startsWith(normalizedQuery))
+    );
+  });
 }
 
 export function toNumber(value) {
@@ -238,16 +323,18 @@ export function completedTests(records = []) {
 export function filterRecords(records = [], filters = {}) {
   const customer = text(filters.customer).toLowerCase();
   const category = text(filters.category).toLowerCase();
-  const detail = text(filters.detail).toLowerCase();
+  const requestedDetail = text(filters.detail);
+  const detail = canonicalPathogen(requestedDetail);
   const year = text(filters.year);
   const month = text(filters.month);
 
   return records.filter((record) => {
     if (customer && record.customer.toLowerCase() !== customer) return false;
     if (category && record.category.toLowerCase() !== category) return false;
+    if (requestedDetail && !detail) return false;
     if (
       detail &&
-      !record.details.some((value) => value.toLowerCase() === detail)
+      !record.details.some((value) => canonicalPathogen(value) === detail)
     ) {
       return false;
     }
@@ -334,9 +421,9 @@ export function getFilterOptions(records = []) {
     categories: uniqueList(records.map((record) => record.category)).sort((a, b) =>
       a.localeCompare(b),
     ),
-    details: uniqueList(records.flatMap((record) => record.details)).sort((a, b) =>
-      a.localeCompare(b),
-    ),
+    details: uniqueList(
+      records.flatMap((record) => record.details.map(canonicalPathogen)),
+    ).sort((a, b) => a.localeCompare(b)),
     years: uniqueList(records.map((record) => record.year))
       .filter((value) => /^\d{4}$/.test(value))
       .sort((a, b) => b.localeCompare(a)),

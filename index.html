@@ -121,36 +121,77 @@
           </div>
 
           <div class="filter-grid">
-            <label>
-              <span data-i18n="customer">Customer</span>
-              <select id="customerFilter">
-                <option value="" data-i18n="allCustomers">All customers</option>
-              </select>
-            </label>
-            <label>
-              <span data-i18n="category">Test category</span>
-              <select id="categoryFilter">
-                <option value="" data-i18n="allCategories">All categories</option>
-              </select>
-            </label>
-            <label>
-              <span data-i18n="pathogen">Pathogen / test detail</span>
-              <select id="detailFilter">
-                <option value="" data-i18n="allPathogens">All pathogens</option>
-              </select>
-            </label>
-            <label>
-              <span data-i18n="year">Year</span>
-              <select id="yearFilter">
-                <option value="" data-i18n="allYears">All years</option>
-              </select>
-            </label>
-            <label>
-              <span data-i18n="month">Month</span>
-              <select id="monthFilter">
-                <option value="" data-i18n="allMonths">All months</option>
-              </select>
-            </label>
+            <div class="filter-control filter-wide">
+              <label for="customerFilter" data-i18n="customer">Customer</label>
+              <div class="customer-combobox">
+                <input
+                  id="customerFilter"
+                  type="search"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls="customerSuggestions"
+                  aria-expanded="false"
+                  autocomplete="off"
+                  spellcheck="false"
+                  data-i18n-placeholder="searchCustomers"
+                  placeholder="Search customers by name"
+                >
+                <button
+                  class="customer-clear hidden"
+                  id="clearCustomerButton"
+                  type="button"
+                  data-i18n-aria-label="clearCustomer"
+                  aria-label="Clear customer"
+                >
+                  ×
+                </button>
+                <div
+                  class="customer-suggestions hidden"
+                  id="customerSuggestions"
+                  role="listbox"
+                  data-i18n-aria-label="customer"
+                  aria-label="Customers"
+                ></div>
+              </div>
+            </div>
+
+            <fieldset class="filter-control filter-wide">
+              <legend data-i18n="category">Test category</legend>
+              <div class="filter-button-list" id="categoryFilter">
+                <button class="filter-option" type="button" aria-pressed="true" data-i18n="allCategories">
+                  All categories
+                </button>
+              </div>
+            </fieldset>
+
+            <fieldset class="filter-control filter-wide">
+              <legend data-i18n="pathogen">Pathogen / disease</legend>
+              <div class="pathogen-filter-groups" id="detailFilter">
+                <div class="filter-button-list">
+                  <button class="filter-option" type="button" aria-pressed="true" data-i18n="allPathogens">
+                    All pathogens
+                  </button>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="filter-control">
+              <legend data-i18n="year">Year</legend>
+              <div class="filter-button-list" id="yearFilter">
+                <button class="filter-option" type="button" aria-pressed="true" data-i18n="allYears">
+                  All years
+                </button>
+              </div>
+            </fieldset>
+
+            <fieldset class="filter-control">
+              <legend data-i18n="month">Month</legend>
+              <div class="filter-button-list month-buttons" id="monthFilter">
+                <button class="filter-option" type="button" aria-pressed="true" data-i18n="allMonths">
+                  All months
+                </button>
+              </div>
+            </fieldset>
           </div>
           <p class="filter-result" id="filterResult" aria-live="polite"></p>
         </section>

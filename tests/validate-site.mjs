@@ -27,8 +27,18 @@ assert.match(html, /id="authForm"/);
 assert.match(html, /id="recentHistory"/);
 assert.match(html, /id="registerToggle"/);
 assert.match(html, /id="registerTabs"/);
+assert.match(html, /id="customerFilter"[\s\S]*role="combobox"/);
+assert.match(html, /id="customerSuggestions"[\s\S]*role="listbox"/);
+assert.match(html, /class="filter-button-list" id="categoryFilter"/);
+assert.match(html, /class="pathogen-filter-groups" id="detailFilter"/);
+assert.match(html, /class="filter-button-list" id="yearFilter"/);
+assert.match(html, /class="filter-button-list month-buttons" id="monthFilter"/);
 assert.match(app, /expandedHistoryCategories/);
 assert.match(app, /registerCategory/);
+assert.doesNotMatch(
+  html,
+  /<select id="(?:customerFilter|categoryFilter|detailFilter|yearFilter|monthFilter)"/,
+);
 assert.match(app, /signInWithPassword/);
 assert.match(app, /authorized_users/);
 assert.match(app, /lab_result_rows/);

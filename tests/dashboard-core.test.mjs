@@ -3,12 +3,16 @@ import assert from "node:assert/strict";
 
 import {
   calculateMetrics,
+  canonicalPathogen,
   completedTests,
   filterRecords,
+  getFilterOptions,
+  matchingCustomers,
   monthlyCounts,
   normalizeDatabaseRows,
   normalizeDate,
   normalizeValueRanges,
+  pathogenType,
   recentlyAdded,
 } from "../dashboard-core.js";
 
@@ -19,6 +23,51 @@ function range(headers, rows) {
 test("normalizes dates in ISO and Egyptian day-first formats", () => {
   assert.equal(normalizeDate("2026-03-11"), "2026-03-11");
   assert.equal(normalizeDate("11/03/2026"), "2026-03-11");
+});
+
+test("groups raw assay details into validated pathogen families", () => {
+  assert.equal(canonicalPathogen("IBDV+"), "IBD");
+  assert.equal(canonicalPathogen("variant ibd"), "IBD");
+  assert.equal(canonicalPathogen("Reovirus"), "REO");
+  assert.equal(canonicalPathogen("MATRIX"), "Influenza");
+  assert.equal(canonicalPathogen("Gentamicin"), "");
+  assert.equal(pathogenType("IBDV"), "viral");
+  assert.equal(pathogenType("Reovirus"), "viral");
+  assert.equal(pathogenType("Influenza"), "viral");
+  assert.equal(pathogenType("E. coli"), "bacterial");
+  assert.equal(pathogenType("MG"), "bacterial");
+  assert.equal(pathogenType("Gentamicin"), "");
+
+  const records = [
+    { details: ["IBDV", "VP2"] },
+    { details: ["REO", "Reovirus"] },
+    { details: ["Gentamicin"] },
+  ];
+  assert.deepEqual(getFilterOptions(records).details, ["IBD", "REO"]);
+  assert.equal(filterRecords(records, { detail: "IBDV" }).length, 1);
+  assert.equal(filterRecords(records, { detail: "REO" }).length, 1);
+  assert.equal(filterRecords(records, { detail: "Gentamicin" }).length, 0);
+});
+
+test("matches customers from the start of a name or name part", () => {
+  const customers = [
+    "Ayad",
+    "Ahmed Hasan",
+    "Ali Ahmed",
+    "Banna",
+    "Ahmed Hasan",
+  ];
+
+  assert.deepEqual(matchingCustomers(customers, "A"), [
+    "Ahmed Hasan",
+    "Ali Ahmed",
+    "Ayad",
+  ]);
+  assert.deepEqual(matchingCustomers(customers, "ahmed"), [
+    "Ahmed Hasan",
+    "Ali Ahmed",
+  ]);
+  assert.deepEqual(matchingCustomers(customers, "z"), []);
 });
 
 test("deduplicates antibiotic rows into one completed test", () => {

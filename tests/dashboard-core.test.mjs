@@ -6,8 +6,10 @@ import {
   completedTests,
   filterRecords,
   monthlyCounts,
+  normalizeDatabaseRows,
   normalizeDate,
   normalizeValueRanges,
+  recentlyAdded,
 } from "../dashboard-core.js";
 
 function range(headers, rows) {
@@ -115,4 +117,42 @@ test("calculates metrics and applies customer/year filters", () => {
     key: "2026-03",
     value: 1,
   });
+});
+
+test("normalizes protected database rows and orders recently added tests", () => {
+  const records = completedTests(
+    normalizeDatabaseRows([
+      {
+        test_id: "TEST-OLDER",
+        test_date: "2026-03-10",
+        customer_name: "Customer A",
+        farm_name: "",
+        test_category: "PCR",
+        detail: "NDV",
+        result: "Negative",
+        sample_count: 0,
+        status: "Complete",
+        quality_flag: "",
+        added_at: "2026-03-10T10:00:00Z",
+        added_by: "admin@example.com",
+      },
+      {
+        test_id: "TEST-NEWER",
+        test_date: "2026-03-09",
+        customer_name: "Customer B",
+        farm_name: "",
+        test_category: "ELISA",
+        detail: "IBDV",
+        result: "100",
+        sample_count: 10,
+        status: "Complete",
+        quality_flag: "",
+        added_at: "2026-03-12T10:00:00Z",
+        added_by: "admin@example.com",
+      },
+    ]),
+  );
+
+  assert.equal(records.length, 2);
+  assert.equal(recentlyAdded(records, 1)[0].id, "TEST-NEWER");
 });

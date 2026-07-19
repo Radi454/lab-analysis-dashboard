@@ -12,12 +12,7 @@
     <title>Lab Analysis Dashboard | Zoetis</title>
     <link rel="icon" href="./assets/zoetis-logo.png" type="image/png" />
     <link rel="stylesheet" href="./styles.css" />
-    <script
-      src="https://accounts.google.com/gsi/client"
-      async
-      defer
-      data-purpose="google.accounts.oauth2"
-    ></script>
+    <script src="./vendor/supabase.js"></script>
     <script type="module" src="./app.js"></script>
   </head>
   <body>
@@ -38,7 +33,11 @@
       <nav class="top-actions" aria-label="Dashboard controls">
         <span class="connection-pill" id="connectionPill" data-state="offline">
           <span class="status-dot" aria-hidden="true"></span>
-          <span id="connectionText" data-i18n="notConnected">Not connected</span>
+          <span id="connectionText" data-i18n="signedOut">Signed out</span>
+        </span>
+        <span class="user-badge hidden" id="userBadge">
+          <span id="userName"></span>
+          <strong id="userRole"></strong>
         </span>
         <button class="icon-button" id="refreshButton" type="button" disabled>
           <span class="refresh-icon" aria-hidden="true">↻</span>
@@ -49,7 +48,7 @@
           <span id="languageButtonLabel">العربية</span>
         </button>
         <button class="text-button hidden" id="signOutButton" type="button" data-i18n="signOut">
-          Disconnect
+          Sign out
         </button>
       </nav>
     </header>
@@ -77,8 +76,8 @@
           <div>
             <strong data-i18n="privateTitle">Private by design</strong>
             <p data-i18n="privateDescription">
-              Data loads only after Google verifies that your account can open
-              the source Sheet.
+              Email/password access is checked against the private approved-user
+              list before any laboratory data is returned.
             </p>
           </div>
         </aside>
@@ -94,23 +93,48 @@
         </div>
         <div class="access-copy">
           <p class="eyebrow" data-i18n="secureAccess">Secure access</p>
-          <h2 id="accessTitle" data-i18n="connectTitle">Connect your Google account</h2>
-          <p id="accessDescription" data-i18n="connectDescription">
-            Sign in with an account that has been granted access to the lab
-            results Sheet. The dashboard requests read-only permission.
+          <h2 id="accessTitle" data-i18n="signInTitle">Sign in to the lab dashboard</h2>
+          <p id="accessDescription" data-i18n="signInDescription">
+            Use the email approved by the administrator and your dashboard password.
           </p>
-          <div class="access-actions">
-            <button class="primary-button" id="connectButton" type="button">
-              <span class="google-g" aria-hidden="true">G</span>
-              <span data-i18n="connectButton">Continue with Google</span>
+          <form class="auth-form" id="authForm">
+            <label id="emailLabel">
+              <span data-i18n="email">Email</span>
+              <input
+                id="emailInput"
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                required
+              />
+            </label>
+            <label>
+              <span id="passwordLabel" data-i18n="password">Password</span>
+              <input
+                id="passwordInput"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                minlength="8"
+                required
+              />
+            </label>
+            <button class="primary-button" id="authSubmitButton" type="submit">
+              <span data-i18n="signIn">Sign in</span>
             </button>
-            <a class="secondary-link hidden" id="openSheetLink" target="_blank" rel="noreferrer">
-              <span data-i18n="openSheet">Open source Sheet</span>
-              <span aria-hidden="true">↗</span>
-            </a>
+          </form>
+          <div class="auth-links">
+            <button class="link-button" id="createAccountButton" type="button" data-i18n="createPassword">
+              First time? Create password
+            </button>
+            <button class="link-button" id="forgotPasswordButton" type="button" data-i18n="forgotPassword">
+              Forgot password?
+            </button>
           </div>
+          <p class="auth-message hidden" id="authMessage" role="status" aria-live="polite"></p>
           <p class="access-note" id="accessNote" data-i18n="accessNote">
-            No laboratory data is stored in this website or its GitHub repository.
+            Only active emails in the administrator’s approved-user list can view results.
           </p>
         </div>
       </section>
@@ -257,6 +281,20 @@
           </article>
         </section>
 
+        <section class="history-card" aria-labelledby="historyTitle">
+          <div class="section-heading history-heading">
+            <div>
+              <p class="eyebrow" data-i18n="historyEyebrow">What’s new</p>
+              <h2 id="historyTitle" data-i18n="historyTitle">Recently added results</h2>
+              <p data-i18n="historyDescription">
+                Latest completed results, grouped by test category and ordered newest first.
+              </p>
+            </div>
+            <span class="record-count" id="historyCount"></span>
+          </div>
+          <div class="history-groups" id="recentHistory"></div>
+        </section>
+
         <section class="table-card" aria-labelledby="recordsTitle">
           <div class="section-heading table-heading">
             <div>
@@ -284,10 +322,6 @@
           </div>
           <div class="table-footer">
             <p data-i18n="tableLimit">Showing the latest 100 matching tests.</p>
-            <a id="sheetFooterLink" target="_blank" rel="noreferrer">
-              <span data-i18n="openSheet">Open source Sheet</span>
-              <span aria-hidden="true">↗</span>
-            </a>
           </div>
         </section>
       </div>
@@ -295,7 +329,7 @@
 
     <footer>
       <span>© 2026 Zoetis Services LLC</span>
-      <span data-i18n="privacyFooter">Laboratory data remains in Google Drive.</span>
+      <span data-i18n="privacyFooter">Private access • secured by approved-user permissions</span>
     </footer>
 
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>

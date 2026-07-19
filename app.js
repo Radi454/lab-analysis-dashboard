@@ -1,17 +1,16 @@
 import { DASHBOARD_CONFIG } from "./config.js";
 import {
-  SHEET_DEFINITIONS,
   calculateMetrics,
   categoryCounts,
   completedTests,
   filterRecords,
   getFilterOptions,
   monthlyCounts,
-  normalizeValueRanges,
+  normalizeDatabaseRows,
+  recentlyAdded,
   resultCounts,
 } from "./dashboard-core.js";
 
-const GOOGLE_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const CATEGORY_COLORS = ["#f45800", "#078879", "#2d6d8c", "#7756a9", "#d89a24"];
 const PCR_COLORS = {
   Positive: "#bc4a4a",
@@ -24,11 +23,11 @@ const translations = {
     skip: "Skip to dashboard",
     brandTitle: "Lab Analysis",
     brandSubtitle: "Intelligence dashboard",
-    notConnected: "Not connected",
-    connected: "Connected",
-    connectionError: "Access needed",
+    signedOut: "Signed out",
+    signedIn: "Signed in",
+    connectionError: "Access denied",
     refresh: "Refresh",
-    signOut: "Disconnect",
+    signOut: "Sign out",
     eyebrow: "Laboratory performance",
     heroTitle: "Completed tests, clearly connected.",
     heroDescription:
@@ -38,25 +37,39 @@ const translations = {
     autoRefresh: "Refreshes every 30 seconds",
     privateTitle: "Private by design",
     privateDescription:
-      "Data loads only after Google verifies that your account can open the source Sheet.",
+      "Email/password access is checked against the private approved-user list before any laboratory data is returned.",
     secureAccess: "Secure access",
-    connectTitle: "Connect your Google account",
-    connectDescription:
-      "Sign in with an account that has been granted access to the lab results Sheet. The dashboard requests read-only permission.",
-    connectButton: "Continue with Google",
-    openSheet: "Open source Sheet",
+    signInTitle: "Sign in to the lab dashboard",
+    signInDescription:
+      "Use the email approved by the administrator and your dashboard password.",
+    email: "Email",
+    password: "Password",
+    newPassword: "New password",
+    signIn: "Sign in",
+    createPassword: "First time? Create password",
+    createTitle: "Create your dashboard password",
+    createDescription:
+      "Use the exact email approved by the administrator. You will confirm the account by email.",
+    recoveryTitle: "Choose a new password",
+    recoveryDescription: "Enter a new password for your dashboard account.",
+    forgotPassword: "Forgot password?",
+    updatePassword: "Save new password",
+    backToSignIn: "Back to sign in",
     accessNote:
-      "No laboratory data is stored in this website or its GitHub repository.",
-    setupTitle: "One owner setup remains",
-    setupDescription:
-      "Add the production Google OAuth Client ID to config.js, then this button will securely connect approved Google accounts.",
-    setupButton: "Google OAuth setup required",
-    setupNote:
-      "The source Sheet is already private and the dashboard contains no embedded laboratory records.",
-    accessDeniedTitle: "This account cannot read the Sheet",
+      "Only active emails in the administrator’s approved-user list can view results.",
+    setupTitle: "Dashboard temporarily unavailable",
+    setupDescription: "The secure connection is not configured.",
+    setupNote: "Please contact the dashboard administrator.",
+    accessDeniedTitle: "This email is not approved",
     accessDeniedDescription:
-      "Ask the Sheet owner to share the workbook with this Google account, then connect again.",
-    reconnect: "Reconnect with Google",
+      "Ask the administrator to add or activate this email in the approved-user list.",
+    accountCreated:
+      "Account created. Check your email to confirm it, then return here to sign in.",
+    resetSent: "If an account exists, a password-reset email has been sent.",
+    passwordUpdated: "Password updated. You can continue to the dashboard.",
+    invalidCredentials: "The email or password is incorrect.",
+    passwordLength: "Use at least 8 characters for the password.",
+    configurationMissing: "The secure dashboard connection is unavailable.",
     explore: "Explore",
     filterTitle: "Filter completed tests",
     resetFilters: "Reset filters",
@@ -98,6 +111,12 @@ const translations = {
     other: "Other / not reported",
     details: "Details",
     recentTests: "Completed test register",
+    historyEyebrow: "What’s new",
+    historyTitle: "Recently added results",
+    historyDescription:
+      "Latest completed results, grouped by test category and ordered newest first.",
+    recentCount: "{count} recent results",
+    added: "Added",
     recordCount: "{count} records",
     date: "Date",
     farm: "Farm",
@@ -109,15 +128,11 @@ const translations = {
     noResult: "Not reported",
     emptyTable: "No completed tests match the current filters.",
     tableLimit: "Showing the latest 100 matching tests.",
-    privacyFooter: "Laboratory data remains in Google Drive.",
+    privacyFooter: "Private access • secured by approved-user permissions",
     loading: "Loading lab results…",
-    refreshed: "Dashboard updated from Google Sheets.",
-    authExpired: "Google access expired. Reconnect to continue refreshing.",
-    generalError: "The dashboard could not load the Sheet. Please try again.",
-    gisError: "Google sign-in could not start. Check your connection and try again.",
-    popupClosed: "Google sign-in was closed before access was granted.",
-    permissionMissing: "Read-only Sheets permission was not granted.",
-    configurationMissing: "Google OAuth is not configured yet.",
+    refreshed: "Dashboard updated.",
+    authExpired: "Your session expired. Sign in again.",
+    generalError: "The dashboard could not load the results. Please try again.",
     categoryAntibiotic: "Antibiotic Sensitivity",
     categoryBacteriology: "Bacteriology",
   },
@@ -125,11 +140,11 @@ const translations = {
     skip: "الانتقال إلى لوحة المعلومات",
     brandTitle: "تحاليل المعمل",
     brandSubtitle: "لوحة مؤشرات ذكية",
-    notConnected: "غير متصل",
-    connected: "متصل",
-    connectionError: "يلزم تصريح",
+    signedOut: "تم تسجيل الخروج",
+    signedIn: "تم تسجيل الدخول",
+    connectionError: "الدخول غير مسموح",
     refresh: "تحديث",
-    signOut: "قطع الاتصال",
+    signOut: "تسجيل الخروج",
     eyebrow: "أداء المعمل",
     heroTitle: "الاختبارات المكتملة، بصورة أوضح.",
     heroDescription:
@@ -139,25 +154,39 @@ const translations = {
     autoRefresh: "تحديث تلقائي كل 30 ثانية",
     privateTitle: "خصوصية من أساس التصميم",
     privateDescription:
-      "لا تُحمّل البيانات إلا بعد أن تتحقق Google من صلاحية الحساب لفتح الجدول المصدر.",
+      "يتم التحقق من البريد الإلكتروني وكلمة المرور وقائمة المستخدمين المعتمدين قبل عرض أي بيانات معملية.",
     secureAccess: "دخول آمن",
-    connectTitle: "اربط حساب Google",
-    connectDescription:
-      "سجّل الدخول بحساب لديه صلاحية الوصول إلى جدول نتائج المعمل. تطلب اللوحة صلاحية القراءة فقط.",
-    connectButton: "المتابعة باستخدام Google",
-    openSheet: "فتح الجدول المصدر",
+    signInTitle: "سجّل الدخول إلى لوحة المعمل",
+    signInDescription:
+      "استخدم البريد الإلكتروني المعتمد من المسؤول وكلمة مرور لوحة المعلومات.",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    newPassword: "كلمة المرور الجديدة",
+    signIn: "تسجيل الدخول",
+    createPassword: "أول مرة؟ أنشئ كلمة مرور",
+    createTitle: "أنشئ كلمة مرور لوحة المعلومات",
+    createDescription:
+      "استخدم البريد الإلكتروني المعتمد لدى المسؤول، ثم أكد الحساب عبر البريد.",
+    recoveryTitle: "اختر كلمة مرور جديدة",
+    recoveryDescription: "أدخل كلمة مرور جديدة لحساب لوحة المعلومات.",
+    forgotPassword: "نسيت كلمة المرور؟",
+    updatePassword: "حفظ كلمة المرور الجديدة",
+    backToSignIn: "العودة لتسجيل الدخول",
     accessNote:
-      "لا تُخزّن أي بيانات معملية داخل هذا الموقع أو مستودع GitHub الخاص به.",
-    setupTitle: "تبقّت خطوة إعداد واحدة للمالك",
-    setupDescription:
-      "أضف معرّف Google OAuth الخاص بالموقع إلى config.js، وبعدها يمكن للحسابات المصرح لها الاتصال بأمان.",
-    setupButton: "يلزم إعداد Google OAuth",
-    setupNote:
-      "الجدول المصدر خاص بالفعل، ولا تحتوي لوحة المعلومات على سجلات معملية مدمجة.",
-    accessDeniedTitle: "هذا الحساب لا يستطيع قراءة الجدول",
+      "يمكن فقط للبريد الإلكتروني النشط في قائمة المستخدمين المعتمدين عرض النتائج.",
+    setupTitle: "لوحة المعلومات غير متاحة مؤقتاً",
+    setupDescription: "لم يتم إعداد الاتصال الآمن.",
+    setupNote: "يرجى التواصل مع مسؤول لوحة المعلومات.",
+    accessDeniedTitle: "هذا البريد غير معتمد",
     accessDeniedDescription:
-      "اطلب من مالك الجدول مشاركته مع هذا الحساب، ثم أعد الاتصال.",
-    reconnect: "إعادة الاتصال بـ Google",
+      "اطلب من المسؤول إضافة هذا البريد أو تفعيله في قائمة المستخدمين المعتمدين.",
+    accountCreated:
+      "تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم عد لتسجيل الدخول.",
+    resetSent: "إذا كان الحساب موجوداً، فسيتم إرسال رسالة لإعادة تعيين كلمة المرور.",
+    passwordUpdated: "تم تحديث كلمة المرور ويمكنك متابعة استخدام اللوحة.",
+    invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    passwordLength: "استخدم 8 أحرف على الأقل لكلمة المرور.",
+    configurationMissing: "الاتصال الآمن بلوحة المعلومات غير متاح.",
     explore: "استكشف",
     filterTitle: "تصفية الاختبارات المكتملة",
     resetFilters: "إعادة ضبط التصفية",
@@ -199,6 +228,12 @@ const translations = {
     other: "أخرى / غير مسجلة",
     details: "التفاصيل",
     recentTests: "سجل الاختبارات المكتملة",
+    historyEyebrow: "أحدث الإضافات",
+    historyTitle: "النتائج المضافة حديثاً",
+    historyDescription:
+      "أحدث النتائج المكتملة، مجمعة حسب فئة الاختبار ومرتبة من الأحدث.",
+    recentCount: "{count} نتيجة حديثة",
+    added: "أضيفت",
     recordCount: "{count} سجل",
     date: "التاريخ",
     farm: "المزرعة",
@@ -210,15 +245,11 @@ const translations = {
     noResult: "غير مسجل",
     emptyTable: "لا توجد اختبارات مكتملة تطابق عوامل التصفية الحالية.",
     tableLimit: "عرض أحدث 100 اختبار مطابق.",
-    privacyFooter: "تبقى بيانات المعمل داخل Google Drive.",
+    privacyFooter: "دخول خاص • محمي بصلاحيات المستخدمين المعتمدين",
     loading: "جارٍ تحميل نتائج المعمل…",
-    refreshed: "تم تحديث اللوحة من Google Sheets.",
-    authExpired: "انتهت صلاحية Google. أعد الاتصال لمواصلة التحديث.",
-    generalError: "تعذر تحميل الجدول. يرجى المحاولة مرة أخرى.",
-    gisError: "تعذر بدء تسجيل الدخول إلى Google. تحقق من الاتصال وحاول مرة أخرى.",
-    popupClosed: "أُغلقت نافذة Google قبل منح صلاحية الوصول.",
-    permissionMissing: "لم يتم منح صلاحية قراءة Google Sheets.",
-    configurationMissing: "لم يتم إعداد Google OAuth بعد.",
+    refreshed: "تم تحديث لوحة المعلومات.",
+    authExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    generalError: "تعذر تحميل النتائج. يرجى المحاولة مرة أخرى.",
     categoryAntibiotic: "حساسية المضادات الحيوية",
     categoryBacteriology: "البكتريولوجي",
   },
@@ -230,11 +261,21 @@ const elements = Object.fromEntries(
     "accessTitle",
     "accessDescription",
     "accessNote",
-    "connectButton",
-    "openSheetLink",
+    "authForm",
+    "emailLabel",
+    "emailInput",
+    "passwordInput",
+    "passwordLabel",
+    "authSubmitButton",
+    "createAccountButton",
+    "forgotPasswordButton",
+    "authMessage",
     "dashboardContent",
     "connectionPill",
     "connectionText",
+    "userBadge",
+    "userName",
+    "userRole",
     "refreshButton",
     "languageButton",
     "languageButtonLabel",
@@ -260,9 +301,10 @@ const elements = Object.fromEntries(
     "pcrDonut",
     "pcrDonutValue",
     "pcrLegend",
+    "historyCount",
+    "recentHistory",
     "tableCount",
     "recordsBody",
-    "sheetFooterLink",
     "toast",
     "loadingOverlay",
   ].map((id) => [id, document.getElementById(id)]),
@@ -270,9 +312,9 @@ const elements = Object.fromEntries(
 
 const state = {
   language: localStorage.getItem("lab-dashboard-language") === "ar" ? "ar" : "en",
-  token: "",
-  tokenExpiresAt: 0,
-  tokenClient: null,
+  session: null,
+  access: null,
+  authMode: "signin",
   allRecords: [],
   filteredRecords: [],
   loading: false,
@@ -280,6 +322,8 @@ const state = {
   toastTimer: null,
   resizeTimer: null,
 };
+
+let supabaseClient = null;
 
 function t(key, replacements = {}) {
   let value = translations[state.language][key] ?? translations.en[key] ?? key;
@@ -291,9 +335,9 @@ function t(key, replacements = {}) {
 
 function isConfigured() {
   return (
-    DASHBOARD_CONFIG.googleClientId &&
-    !DASHBOARD_CONFIG.googleClientId.includes("YOUR_GOOGLE") &&
-    DASHBOARD_CONFIG.googleClientId.endsWith(".apps.googleusercontent.com")
+    DASHBOARD_CONFIG.supabaseUrl?.startsWith("https://") &&
+    DASHBOARD_CONFIG.supabasePublishableKey?.startsWith("sb_publishable_") &&
+    window.supabase?.createClient
   );
 }
 
@@ -325,6 +369,17 @@ function formatDate(date) {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+function formatDateTime(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(state.language === "ar" ? "ar-EG" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function monthLabel(monthKey, format = "short") {
   const [year, month] = monthKey.split("-");
   if (!year || !month) return monthKey;
@@ -349,12 +404,12 @@ function updateTranslations() {
     node.textContent = t(node.dataset.i18n);
   });
 
-  if (state.token) {
-    setConnection("online", "connected");
+  if (state.session) {
+    setConnection("online", "signedIn");
   } else if (elements.connectionPill.dataset.state === "error") {
     setConnection("error", "connectionError");
   } else {
-    setConnection("offline", "notConnected");
+    setConnection("offline", "signedOut");
   }
 }
 
@@ -366,47 +421,88 @@ function showToast(message, kind = "info") {
   state.toastTimer = setTimeout(() => elements.toast.classList.add("hidden"), 4200);
 }
 
+function showAuthMessage(message = "", kind = "info") {
+  elements.authMessage.textContent = message;
+  elements.authMessage.dataset.kind = kind;
+  elements.authMessage.classList.toggle("hidden", !message);
+}
+
+function setAuthMode(mode) {
+  state.authMode = mode;
+  const isRecovery = mode === "recovery";
+  const isSignup = mode === "signup";
+
+  elements.emailLabel.classList.toggle("hidden", isRecovery);
+  elements.passwordInput.autocomplete = isRecovery
+    ? "new-password"
+    : isSignup
+      ? "new-password"
+      : "current-password";
+  elements.passwordLabel.textContent = t(isRecovery ? "newPassword" : "password");
+  elements.authSubmitButton.textContent = t(
+    isRecovery ? "updatePassword" : isSignup ? "createPassword" : "signIn",
+  );
+  elements.createAccountButton.textContent = t(
+    isSignup || isRecovery ? "backToSignIn" : "createPassword",
+  );
+  elements.forgotPasswordButton.classList.toggle("hidden", isSignup || isRecovery);
+  elements.accessTitle.textContent = t(
+    isRecovery ? "recoveryTitle" : isSignup ? "createTitle" : "signInTitle",
+  );
+  elements.accessDescription.textContent = t(
+    isRecovery
+      ? "recoveryDescription"
+      : isSignup
+        ? "createDescription"
+        : "signInDescription",
+  );
+  showAuthMessage();
+}
+
 function setLoading(loading, overlay = false) {
   state.loading = loading;
   elements.refreshButton.classList.toggle("loading", loading);
-  elements.refreshButton.disabled = loading || !state.token;
+  elements.refreshButton.disabled = loading || !state.session;
   elements.loadingOverlay.classList.toggle("hidden", !loading || !overlay);
 }
 
 function showSetupState() {
   elements.accessPanel.classList.remove("hidden");
   elements.dashboardContent.classList.add("hidden");
-  elements.connectButton.disabled = true;
-  elements.openSheetLink.classList.remove("hidden");
+  elements.authForm.classList.add("hidden");
+  elements.createAccountButton.classList.add("hidden");
+  elements.forgotPasswordButton.classList.add("hidden");
   elements.accessTitle.textContent = t("setupTitle");
   elements.accessDescription.textContent = t("setupDescription");
   elements.accessNote.textContent = t("setupNote");
-  elements.connectButton.querySelector("[data-i18n]").textContent = t("setupButton");
-  setConnection("offline", "notConnected");
+  setConnection("offline", "signedOut");
 }
 
 function showConnectState({ denied = false } = {}) {
   elements.accessPanel.classList.remove("hidden");
   elements.dashboardContent.classList.add("hidden");
-  elements.connectButton.disabled = false;
-  elements.openSheetLink.classList.remove("hidden");
-  elements.accessTitle.textContent = t(denied ? "accessDeniedTitle" : "connectTitle");
+  elements.authForm.classList.remove("hidden");
+  elements.createAccountButton.classList.remove("hidden");
+  elements.forgotPasswordButton.classList.remove("hidden");
+  setAuthMode("signin");
+  elements.accessTitle.textContent = t(denied ? "accessDeniedTitle" : "signInTitle");
   elements.accessDescription.textContent = t(
-    denied ? "accessDeniedDescription" : "connectDescription",
+    denied ? "accessDeniedDescription" : "signInDescription",
   );
   elements.accessNote.textContent = t("accessNote");
-  elements.connectButton.querySelector("[data-i18n]").textContent = t(
-    denied ? "reconnect" : "connectButton",
-  );
-  setConnection(denied ? "error" : "offline", denied ? "connectionError" : "notConnected");
+  setConnection(denied ? "error" : "offline", denied ? "connectionError" : "signedOut");
 }
 
 function showDashboard() {
   elements.accessPanel.classList.add("hidden");
   elements.dashboardContent.classList.remove("hidden");
   elements.signOutButton.classList.remove("hidden");
+  elements.userBadge.classList.remove("hidden");
+  elements.userName.textContent =
+    state.access?.display_name || state.session?.user?.email || "";
+  elements.userRole.textContent = state.access?.role || "";
   elements.refreshButton.disabled = false;
-  setConnection("online", "connected");
+  setConnection("online", "signedIn");
 }
 
 function populateSelect(select, values, firstLabel, display = (value) => value) {
@@ -753,6 +849,71 @@ function renderTable(records) {
   });
 }
 
+function renderRecentHistory(records) {
+  const recent = recentlyAdded(records, 30);
+  elements.historyCount.textContent = t("recentCount", {
+    count: formatNumber(recent.length),
+  });
+  elements.recentHistory.replaceChildren();
+
+  if (!recent.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-table";
+    empty.textContent = t("emptyTable");
+    elements.recentHistory.append(empty);
+    return;
+  }
+
+  const groups = new Map();
+  for (const record of recent) {
+    if (!groups.has(record.category)) groups.set(record.category, []);
+    groups.get(record.category).push(record);
+  }
+
+  for (const [category, items] of groups) {
+    const group = document.createElement("article");
+    group.className = "history-group";
+
+    const header = document.createElement("div");
+    header.className = "history-group-header";
+    const title = document.createElement("strong");
+    title.textContent = categoryLabel(category);
+    const count = document.createElement("span");
+    count.textContent = formatNumber(items.length);
+    header.append(title, count);
+
+    const list = document.createElement("div");
+    list.className = "history-list";
+
+    for (const record of items) {
+      const item = document.createElement("div");
+      item.className = "history-item";
+
+      const customer = document.createElement("strong");
+      customer.textContent = record.customer || "—";
+
+      const summary = document.createElement("p");
+      summary.textContent =
+        [record.detail, record.result || t("noResult")].filter(Boolean).join(" • ") ||
+        "—";
+
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      const date = document.createElement("span");
+      date.textContent = formatDateTime(record.addedAt);
+      const id = document.createElement("span");
+      id.textContent = record.id;
+      meta.append(date, id);
+
+      item.append(customer, summary, meta);
+      list.append(item);
+    }
+
+    group.append(header, list);
+    elements.recentHistory.append(group);
+  }
+}
+
 function render() {
   state.filteredRecords = filterRecords(state.allRecords, currentFilters());
   const records = state.filteredRecords;
@@ -763,6 +924,7 @@ function render() {
   renderCategoryBars(records);
   renderPcrDonut(records);
   drawMonthlyChart(records);
+  renderRecentHistory(state.allRecords);
   renderTable(records);
 }
 
@@ -770,10 +932,12 @@ function translateAndRender() {
   updateTranslations();
   if (!isConfigured()) {
     showSetupState();
-  } else if (!state.token) {
+  } else if (!state.session) {
     showConnectState({
       denied: elements.connectionPill.dataset.state === "error",
     });
+  } else {
+    showDashboard();
   }
   if (state.allRecords.length) {
     populateFilters();
@@ -781,60 +945,80 @@ function translateAndRender() {
   }
 }
 
-async function fetchSheetData() {
-  const parameters = new URLSearchParams({
-    majorDimension: "ROWS",
-    valueRenderOption: "FORMATTED_VALUE",
-  });
-  SHEET_DEFINITIONS.forEach((definition) =>
-    parameters.append("ranges", definition.range),
-  );
-
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${DASHBOARD_CONFIG.spreadsheetId}/values:batchGet?${parameters}`,
-    {
-      headers: { Authorization: `Bearer ${state.token}` },
-      cache: "no-store",
-    },
-  );
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    const error = new Error(payload.error?.message || `Google Sheets error ${response.status}`);
-    error.status = response.status;
+async function fetchDashboardData() {
+  const email = state.session?.user?.email?.toLowerCase();
+  if (!email) {
+    const error = new Error("Missing authenticated email");
+    error.status = 401;
     throw error;
   }
 
-  return response.json();
+  const { data: access, error: accessError } = await supabaseClient
+    .from("authorized_users")
+    .select("email,display_name,role,active")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (accessError) {
+    const error = new Error(accessError.message);
+    error.status = accessError.code === "42501" ? 403 : 500;
+    throw error;
+  }
+  if (!access?.active) {
+    const error = new Error("Email is not approved");
+    error.status = 403;
+    throw error;
+  }
+
+  const { data: rows, error: rowsError } = await supabaseClient
+    .from("lab_result_rows")
+    .select(
+      "test_id,test_date,customer_name,farm_name,lab_name,area,field_force,sample_type,test_category,detail,result,sample_count,status,quality_flag,added_at,added_by",
+    )
+    .order("test_date", { ascending: false })
+    .limit(5000);
+
+  if (rowsError) {
+    const error = new Error(rowsError.message);
+    error.status = rowsError.code === "42501" ? 403 : 500;
+    throw error;
+  }
+
+  return { access, rows };
 }
 
 function startAutoRefresh() {
   clearInterval(state.refreshTimer);
   state.refreshTimer = setInterval(() => {
-    if (!state.token) return;
-    if (Date.now() >= state.tokenExpiresAt) {
-      handleExpiredToken();
-      return;
-    }
-    loadData({ silent: true });
+    if (state.session) loadData({ silent: true });
   }, DASHBOARD_CONFIG.refreshIntervalMs);
 }
 
-function handleExpiredToken() {
+function clearDashboardState() {
   clearInterval(state.refreshTimer);
-  state.token = "";
-  state.tokenExpiresAt = 0;
+  state.session = null;
+  state.access = null;
+  state.allRecords = [];
+  state.filteredRecords = [];
   elements.signOutButton.classList.add("hidden");
+  elements.userBadge.classList.add("hidden");
+  elements.refreshButton.disabled = true;
+}
+
+async function handleExpiredSession() {
+  clearDashboardState();
+  await supabaseClient?.auth.signOut({ scope: "local" }).catch(() => {});
   showConnectState();
   showToast(t("authExpired"), "error");
 }
 
 async function loadData({ silent = false } = {}) {
-  if (state.loading || !state.token) return;
+  if (state.loading || !state.session) return;
   setLoading(true, !silent);
   try {
-    const payload = await fetchSheetData();
-    state.allRecords = completedTests(normalizeValueRanges(payload.valueRanges));
+    const payload = await fetchDashboardData();
+    state.access = payload.access;
+    state.allRecords = completedTests(normalizeDatabaseRows(payload.rows));
     populateFilters();
     showDashboard();
     render();
@@ -846,14 +1030,12 @@ async function loadData({ silent = false } = {}) {
     if (!silent) showToast(t("refreshed"));
   } catch (error) {
     if (error.status === 401) {
-      handleExpiredToken();
-    } else if (error.status === 403 || error.status === 404) {
-      clearInterval(state.refreshTimer);
-      state.token = "";
-      state.tokenExpiresAt = 0;
-      elements.signOutButton.classList.add("hidden");
+      await handleExpiredSession();
+    } else if (error.status === 403) {
+      clearDashboardState();
+      await supabaseClient.auth.signOut({ scope: "local" }).catch(() => {});
       showConnectState({ denied: true });
-      showToast(t("accessDeniedDescription"), "error");
+      showAuthMessage(t("accessDeniedDescription"), "error");
     } else {
       setConnection("error", "connectionError");
       showToast(t("generalError"), "error");
@@ -864,75 +1046,95 @@ async function loadData({ silent = false } = {}) {
   }
 }
 
-function requestGoogleAccess() {
-  if (!isConfigured()) {
-    showToast(t("configurationMissing"), "error");
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+  if (!supabaseClient || state.loading) return;
+
+  const email = elements.emailInput.value.trim().toLowerCase();
+  const password = elements.passwordInput.value;
+  if (password.length < 8) {
+    showAuthMessage(t("passwordLength"), "error");
     return;
   }
-  if (!state.tokenClient) {
-    showToast(t("gisError"), "error");
-    return;
-  }
-  state.tokenClient.requestAccessToken({ prompt: "select_account" });
-}
 
-function initializeGoogleClient() {
-  state.tokenClient = window.google.accounts.oauth2.initTokenClient({
-    client_id: DASHBOARD_CONFIG.googleClientId,
-    scope: GOOGLE_SCOPE,
-    callback: async (response) => {
-      if (response.error) {
-        showToast(
-          response.error === "popup_closed" ? t("popupClosed") : t("gisError"),
-          "error",
-        );
-        return;
-      }
-
-      if (
-        !response.access_token ||
-        !window.google.accounts.oauth2.hasGrantedAllScopes(response, GOOGLE_SCOPE)
-      ) {
-        showToast(t("permissionMissing"), "error");
-        return;
-      }
-
-      state.token = response.access_token;
-      state.tokenExpiresAt =
-        Date.now() + Math.max(Number(response.expires_in || 3600) - 60, 60) * 1000;
+  setLoading(true);
+  showAuthMessage();
+  try {
+    if (state.authMode === "recovery") {
+      const { error } = await supabaseClient.auth.updateUser({ password });
+      if (error) throw error;
+      setAuthMode("signin");
+      showToast(t("passwordUpdated"));
+      setLoading(false);
       await loadData();
-    },
-    error_callback: (error) => {
-      showToast(
-        error.type === "popup_closed" ? t("popupClosed") : t("gisError"),
-        "error",
-      );
-    },
-  });
-}
+      return;
+    }
 
-async function waitForGoogleIdentity(timeoutMs = 12_000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    if (window.google?.accounts?.oauth2) return true;
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (state.authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: DASHBOARD_CONFIG.siteUrl },
+      });
+      if (error) throw error;
+      elements.passwordInput.value = "";
+      if (data.session) {
+        state.session = data.session;
+        setLoading(false);
+        await loadData();
+      } else {
+        setAuthMode("signin");
+        elements.emailInput.value = email;
+        showAuthMessage(t("accountCreated"));
+      }
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    state.session = data.session;
+    elements.passwordInput.value = "";
+    setLoading(false);
+    await loadData();
+  } catch (error) {
+    const message =
+      error?.message?.toLowerCase().includes("invalid login") ||
+      error?.message?.toLowerCase().includes("credentials")
+        ? t("invalidCredentials")
+        : error?.message || t("generalError");
+    showAuthMessage(message, "error");
+  } finally {
+    setLoading(false);
   }
-  return false;
 }
 
-function disconnect() {
-  clearInterval(state.refreshTimer);
-  const token = state.token;
-  state.token = "";
-  state.tokenExpiresAt = 0;
-  state.allRecords = [];
-  state.filteredRecords = [];
-  elements.signOutButton.classList.add("hidden");
-  elements.refreshButton.disabled = true;
+async function requestPasswordReset() {
+  const email = elements.emailInput.value.trim().toLowerCase();
+  if (!email) {
+    elements.emailInput.focus();
+    return;
+  }
+  setLoading(true);
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: DASHBOARD_CONFIG.siteUrl,
+    });
+    if (error) throw error;
+    showAuthMessage(t("resetSent"));
+  } catch (error) {
+    showAuthMessage(error?.message || t("generalError"), "error");
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function disconnect() {
+  clearDashboardState();
+  await supabaseClient.auth.signOut({ scope: "local" });
   showConnectState();
-  if (token && window.google?.accounts?.oauth2) {
-    window.google.accounts.oauth2.revoke(token, () => {});
-  }
 }
 
 function resetFilters() {
@@ -955,7 +1157,11 @@ function bindEvents() {
     translateAndRender();
   });
 
-  elements.connectButton.addEventListener("click", requestGoogleAccess);
+  elements.authForm.addEventListener("submit", handleAuthSubmit);
+  elements.createAccountButton.addEventListener("click", () => {
+    setAuthMode(state.authMode === "signin" ? "signup" : "signin");
+  });
+  elements.forgotPasswordButton.addEventListener("click", requestPasswordReset);
   elements.refreshButton.addEventListener("click", () => loadData());
   elements.signOutButton.addEventListener("click", disconnect);
   elements.resetFiltersButton.addEventListener("click", resetFilters);
@@ -977,8 +1183,6 @@ function bindEvents() {
 }
 
 async function initialize() {
-  elements.openSheetLink.href = DASHBOARD_CONFIG.sheetUrl;
-  elements.sheetFooterLink.href = DASHBOARD_CONFIG.sheetUrl;
   bindEvents();
   updateTranslations();
 
@@ -987,13 +1191,44 @@ async function initialize() {
     return;
   }
 
-  showConnectState();
-  const ready = await waitForGoogleIdentity();
-  if (ready) {
-    initializeGoogleClient();
+  supabaseClient = window.supabase.createClient(
+    DASHBOARD_CONFIG.supabaseUrl,
+    DASHBOARD_CONFIG.supabasePublishableKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    },
+  );
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    state.session = session;
+    if (event === "PASSWORD_RECOVERY") {
+      elements.accessPanel.classList.remove("hidden");
+      elements.dashboardContent.classList.add("hidden");
+      setAuthMode("recovery");
+      return;
+    }
+    if (event === "SIGNED_OUT") {
+      clearDashboardState();
+      showConnectState();
+      return;
+    }
+    if (session && ["SIGNED_IN", "TOKEN_REFRESHED", "INITIAL_SESSION"].includes(event)) {
+      window.setTimeout(() => loadData({ silent: event !== "SIGNED_IN" }), 0);
+    }
+  });
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+  state.session = session;
+  if (session) {
+    await loadData();
   } else {
-    elements.connectButton.disabled = true;
-    showToast(t("gisError"), "error");
+    showConnectState();
   }
 }
 

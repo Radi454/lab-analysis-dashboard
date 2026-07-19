@@ -1,34 +1,34 @@
 export const SHEET_DEFINITIONS = Object.freeze([
   {
     tab: "ELISA Results",
-    range: "'ELISA Results'!A:AD",
+    range: "'ELISA Results'!A:AF",
     detailHeader: "Pathogen / Antigen",
     resultHeader: "Positive %",
     sampleHeader: "Sample Count",
   },
   {
     tab: "HI Results",
-    range: "'HI Results'!A:U",
+    range: "'HI Results'!A:W",
     detailHeader: "Pathogen / Antigen",
     resultHeader: "Overall Mean",
     sampleHeader: "Sample Count",
   },
   {
     tab: "PCR Results",
-    range: "'PCR Results'!A:U",
+    range: "'PCR Results'!A:W",
     detailHeader: "Target Pathogen",
     fallbackDetailHeader: "Pathogen / Antigen",
     resultHeader: "Result",
   },
   {
     tab: "Antibiotic Results",
-    range: "'Antibiotic Results'!A:S",
+    range: "'Antibiotic Results'!A:U",
     detailHeader: "Antibiotic Name",
     resultHeader: "Interpretation",
   },
   {
     tab: "Bacteriology Results",
-    range: "'Bacteriology Results'!A:S",
+    range: "'Bacteriology Results'!A:U",
     detailHeader: "Organism",
     resultHeader: "Result",
   },
@@ -65,6 +65,17 @@ export function normalizeDate(value) {
   return parsed.toISOString().slice(0, 10);
 }
 
+export function normalizeTimestamp(value, fallbackDate = "") {
+  const raw = text(value);
+  if (raw) {
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.valueOf())) return parsed.toISOString();
+  }
+
+  const normalizedFallback = normalizeDate(fallbackDate);
+  return normalizedFallback ? `${normalizedFallback}T12:00:00.000Z` : "";
+}
+
 export function rowsToObjects(values = []) {
   if (!Array.isArray(values) || values.length < 2) return [];
   const headers = values[0].map(text);
@@ -86,6 +97,12 @@ function mergeTest(existing, incoming) {
   ]);
   existing.sampleCount = Math.max(existing.sampleCount, incoming.sampleCount);
   existing.statuses = uniqueList([...existing.statuses, ...incoming.statuses]);
+  if (incoming.addedAt > existing.addedAt) {
+    existing.addedAt = incoming.addedAt;
+    existing.addedBy = incoming.addedBy || existing.addedBy;
+  } else if (!existing.addedBy && incoming.addedBy) {
+    existing.addedBy = incoming.addedBy;
+  }
   for (const key of [
     "date",
     "customer",
@@ -100,41 +117,7 @@ function mergeTest(existing, incoming) {
   return existing;
 }
 
-export function normalizeValueRanges(valueRanges = []) {
-  const rawRecords = [];
-
-  SHEET_DEFINITIONS.forEach((definition, index) => {
-    const rows = rowsToObjects(valueRanges[index]?.values ?? []);
-    for (const row of rows) {
-      const id = text(row["Test ID"]);
-      if (!id) continue;
-
-      const detail = text(
-        row[definition.detailHeader] ?? row[definition.fallbackDetailHeader],
-      );
-      const result = text(row[definition.resultHeader]);
-
-      rawRecords.push({
-        id,
-        date: normalizeDate(row["Test Date"]),
-        customer: text(row["Customer Name"]),
-        farm: text(row["Farm Name (Optional)"]),
-        lab: text(row["Lab Name"]),
-        area: text(row.Area),
-        fieldForce: text(row["Field Force"]),
-        sampleType: text(row["Sample Type"]),
-        category: text(row["Test Category"]) || definition.tab.replace(" Results", ""),
-        details: detail ? [detail] : [],
-        results: result ? [result] : [],
-        sampleCount: definition.sampleHeader
-          ? toNumber(row[definition.sampleHeader])
-          : 0,
-        statuses: [text(row.Status)],
-        qualityFlags: text(row["Quality Flag"]) ? [text(row["Quality Flag"])] : [],
-      });
-    }
-  });
-
+function finalizeRecords(rawRecords) {
   const tests = new Map();
   for (const record of rawRecords) {
     const key = `${record.category}::${record.id}`;
@@ -161,6 +144,91 @@ export function normalizeValueRanges(valueRanges = []) {
       monthKey: record.date.slice(0, 7),
     }))
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+}
+
+export function normalizeValueRanges(valueRanges = []) {
+  const rawRecords = [];
+
+  SHEET_DEFINITIONS.forEach((definition, index) => {
+    const rows = rowsToObjects(valueRanges[index]?.values ?? []);
+    for (const row of rows) {
+      const id = text(row["Test ID"]);
+      if (!id) continue;
+
+      const date = normalizeDate(row["Test Date"]);
+      const detail = text(
+        row[definition.detailHeader] ?? row[definition.fallbackDetailHeader],
+      );
+      const result = text(row[definition.resultHeader]);
+
+      rawRecords.push({
+        id,
+        date,
+        customer: text(row["Customer Name"]),
+        farm: text(row["Farm Name (Optional)"]),
+        lab: text(row["Lab Name"]),
+        area: text(row.Area),
+        fieldForce: text(row["Field Force"]),
+        sampleType: text(row["Sample Type"]),
+        category: text(row["Test Category"]) || definition.tab.replace(" Results", ""),
+        details: detail ? [detail] : [],
+        results: result ? [result] : [],
+        sampleCount: definition.sampleHeader
+          ? toNumber(row[definition.sampleHeader])
+          : 0,
+        statuses: [text(row.Status)],
+        qualityFlags: text(row["Quality Flag"]) ? [text(row["Quality Flag"])] : [],
+        addedAt: normalizeTimestamp(row["Added At"], date),
+        addedBy: text(row["Added By"]),
+      });
+    }
+  });
+
+  return finalizeRecords(rawRecords);
+}
+
+export function normalizeDatabaseRows(rows = []) {
+  const rawRecords = rows
+    .map((row) => {
+      const id = text(row.test_id);
+      if (!id) return null;
+      const date = normalizeDate(row.test_date);
+      const detail = text(row.detail);
+      const result = text(row.result);
+
+      return {
+        id,
+        date,
+        customer: text(row.customer_name),
+        farm: text(row.farm_name),
+        lab: text(row.lab_name),
+        area: text(row.area),
+        fieldForce: text(row.field_force),
+        sampleType: text(row.sample_type),
+        category: text(row.test_category),
+        details: detail ? [detail] : [],
+        results: result ? [result] : [],
+        sampleCount: toNumber(row.sample_count),
+        statuses: [text(row.status)],
+        qualityFlags: text(row.quality_flag) ? [text(row.quality_flag)] : [],
+        addedAt: normalizeTimestamp(row.added_at, date),
+        addedBy: text(row.added_by),
+      };
+    })
+    .filter(Boolean);
+
+  return finalizeRecords(rawRecords);
+}
+
+export function recentlyAdded(records = [], limit = 30) {
+  return [...records]
+    .sort(
+      (a, b) =>
+        b.addedAt.localeCompare(a.addedAt) ||
+        b.date.localeCompare(a.date) ||
+        a.id.localeCompare(b.id),
+    )
+    .slice(0, Math.max(0, limit));
 }
 
 export function completedTests(records = []) {

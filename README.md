@@ -1,36 +1,51 @@
 # Lab Analysis Dashboard
 
-A bilingual Zoetis-styled dashboard for completed laboratory tests stored in a private Google Sheet.
+A bilingual Zoetis-styled dashboard for completed laboratory tests, published
+on GitHub Pages with private email/password access.
 
-## Privacy model
+## Security model
 
-The repository contains no laboratory records. The public GitHub Pages shell asks each viewer to authorize Google Sheets read-only access. Google only returns workbook data when the signed-in account already has permission to open the configured Sheet.
+- Supabase Auth handles user passwords and sessions.
+- The public site contains only a Supabase publishable key; it contains no
+  secret or service-role credential.
+- `authorized_users` is the server-side access list. A signed-in user can read
+  only their own active access record.
+- `lab_result_rows` is protected by Row Level Security. Results are returned
+  only when the signed-in email has an active approved-user record.
+- The Google Sheet and Supabase mirror are updated together through the managed
+  MCP data-entry workflow.
 
-Access tokens are held in browser memory and are not committed, logged, or sent anywhere except Google Sheets API requests.
+## User workflow
 
-## Google Cloud setup
+1. Add the user’s email, display name, role, and active status to the
+   `Authorized Users` Sheet tab.
+2. Synchronize the approved user through the managed MCP workflow.
+3. The user selects **First time? Create password** on the dashboard and
+   confirms their email.
+4. Admin and User roles both see all laboratory data. The role is shown in the
+   dashboard header.
 
-1. Enable the Google Sheets API in a Google Cloud project.
-2. Configure the OAuth consent screen and add the allowed users.
-3. Create an OAuth 2.0 Client ID of type **Web application**.
-4. Add the deployed GitHub Pages URL as an **Authorized JavaScript origin**.
-5. Replace `YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com` in `config.js` with the client ID.
+Passwords never belong in the Google Sheet.
 
-## Data contract
+## Data model
 
-The dashboard reads these tabs:
+The core Sheet tabs are:
 
 - `ELISA Results`
 - `HI Results`
 - `PCR Results`
 - `Antibiotic Results`
 - `Bacteriology Results`
+- `Authorized Users`
 
-Repeated antibiotic or bacteriology rows with the same Test ID are treated as one test. Only records whose status is `Complete` appear in metrics and charts.
+Repeated antibiotic or bacteriology rows with the same Test ID are treated as
+one test. Only records whose status is `Complete` appear in metrics and charts.
+`Added At` and `Added By` provide the audit trail used by the recent-results
+history.
 
 ## Checks
 
 ```sh
 npm test
-npm run validate
+npm run build
 ```

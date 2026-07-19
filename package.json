@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "npm run validate",
     "test": "node --test",
     "validate": "node tests/validate-site.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.110.7"
   }
 }

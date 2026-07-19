@@ -1,8 +1,6 @@
 export const DASHBOARD_CONFIG = Object.freeze({
-  spreadsheetId: "1KKZU6T2OikNZp6CdBm47uGwKiox7d_MxAHURMD8fx4E",
-  googleClientId:
-    "135832451889-49jjn04o78632qcp5tpq7lgjgnmgb5nb.apps.googleusercontent.com",
+  supabaseUrl: "https://leuqbsfyypfhhypfsjpx.supabase.co",
+  supabasePublishableKey: "sb_publishable_u5nDtmkiw9gSiHHGVb2Qog_7fdD_ulQ",
+  siteUrl: "https://radi454.github.io/lab-analysis-dashboard/",
   refreshIntervalMs: 30_000,
-  sheetUrl:
-    "https://docs.google.com/spreadsheets/d/1KKZU6T2OikNZp6CdBm47uGwKiox7d_MxAHURMD8fx4E/edit",
 });

@@ -8,6 +8,7 @@ const requiredFiles = [
   "dashboard-core.js",
   "config.js",
   "assets/zoetis-logo.png",
+  "vendor/supabase.js",
   ".nojekyll",
 ];
 
@@ -21,16 +22,21 @@ const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const config = await readFile(new URL("../config.js", import.meta.url), "utf8");
 
 assert.match(html, /lang="en"/);
-assert.match(html, /google\.accounts\.oauth2/);
-assert.match(app, /spreadsheets\.readonly/);
-assert.match(app, /values:batchGet/);
+assert.match(html, /vendor\/supabase\.js/);
+assert.match(html, /id="authForm"/);
+assert.match(html, /id="recentHistory"/);
+assert.match(app, /signInWithPassword/);
+assert.match(app, /authorized_users/);
+assert.match(app, /lab_result_rows/);
 assert.match(app, /setInterval/);
-assert.match(config, /1KKZU6T2OikNZp6CdBm47uGwKiox7d_MxAHURMD8fx4E/);
-assert.match(
+assert.match(config, /https:\/\/leuqbsfyypfhhypfsjpx\.supabase\.co/);
+assert.match(config, /sb_publishable_[A-Za-z0-9_-]+/);
+assert.doesNotMatch(html, /accounts\.google\.com|Continue with Google/);
+assert.doesNotMatch(app, /google\.accounts|spreadsheets\.readonly|values:batchGet/);
+assert.doesNotMatch(
   config,
-  /googleClientId:[\s\S]*"\d+-[a-z0-9]+\.apps\.googleusercontent\.com"/,
+  /BEGIN PRIVATE KEY|client_secret|service_account|service_role|sb_secret_/,
 );
-assert.doesNotMatch(config, /BEGIN PRIVATE KEY|client_secret|service_account/);
 assert.doesNotMatch(app, /\b(?:ELI|HIT|AST|BAC)-\d/);
 assert.doesNotMatch(html, /\b(?:ELI|HIT|AST|BAC)-\d/);
 

@@ -13,7 +13,7 @@ import {
   resultCounts,
 } from "./dashboard-core.js";
 
-const CATEGORY_COLORS = ["#f45800", "#078879", "#2d6d8c", "#7756a9", "#d89a24"];
+const CATEGORY_COLORS = ["#00857c", "#0c2340", "#50a69c", "#68869c", "#a3c8b9"];
 const PCR_COLORS = {
   Positive: "#bc4a4a",
   Negative: "#078879",
@@ -25,6 +25,9 @@ const translations = {
     skip: "Skip to dashboard",
     brandTitle: "Lab Analysis",
     brandSubtitle: "Intelligence dashboard",
+    publicAccess: "Live results",
+    dataUnavailable: "Connection unavailable",
+    heroDescription: "Poultry diagnostics, brought into focus.",
     signedOut: "Signed out",
     signedIn: "Signed in",
     connectionError: "Access denied",
@@ -142,6 +145,9 @@ const translations = {
     skip: "الانتقال إلى لوحة المعلومات",
     brandTitle: "تحاليل المعمل",
     brandSubtitle: "لوحة مؤشرات ذكية",
+    publicAccess: "نتائج مباشرة",
+    dataUnavailable: "الاتصال غير متاح",
+    heroDescription: "رؤية أوضح لنتائج تحاليل الدواجن.",
     signedOut: "تم تسجيل الخروج",
     signedIn: "تم تسجيل الدخول",
     connectionError: "الدخول غير مسموح",
@@ -447,7 +453,10 @@ function updateTranslations() {
     node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
   });
 
-  if (state.session) {
+  if (DASHBOARD_CONFIG.publicReadOnly) {
+    setConnection(elements.connectionPill.dataset.state === "error" ? "error" : "online",
+      elements.connectionPill.dataset.state === "error" ? "dataUnavailable" : "publicAccess");
+  } else if (state.session) {
     setConnection("online", "signedIn");
   } else if (elements.connectionPill.dataset.state === "error") {
     setConnection("error", "connectionError");
@@ -510,7 +519,7 @@ function setAuthMode(mode) {
 function setLoading(loading, overlay = false) {
   state.loading = loading;
   elements.refreshButton.classList.toggle("loading", loading);
-  elements.refreshButton.disabled = loading || !state.session;
+  elements.refreshButton.disabled = loading || (!DASHBOARD_CONFIG.publicReadOnly && !state.session);
   elements.loadingOverlay.classList.toggle("hidden", !loading || !overlay);
 }
 
@@ -545,13 +554,13 @@ function showDashboard() {
   elements.accessPanel.classList.add("hidden");
   elements.dashboardContent.classList.remove("hidden");
   elements.freshnessRow.classList.remove("hidden");
-  elements.signOutButton.classList.remove("hidden");
-  elements.userBadge.classList.remove("hidden");
+  elements.signOutButton.classList.toggle("hidden", DASHBOARD_CONFIG.publicReadOnly);
+  elements.userBadge.classList.toggle("hidden", DASHBOARD_CONFIG.publicReadOnly);
   elements.userName.textContent =
     state.access?.display_name || state.session?.user?.email || "";
   elements.userRole.textContent = state.access?.role || "";
   elements.refreshButton.disabled = false;
-  setConnection("online", "signedIn");
+  setConnection("online", DASHBOARD_CONFIG.publicReadOnly ? "publicAccess" : "signedIn");
 }
 
 function closeCustomerSuggestions() {
@@ -949,8 +958,8 @@ function drawMonthlyChart(records) {
   });
 
   const fill = context.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-  fill.addColorStop(0, "rgba(244, 88, 0, 0.24)");
-  fill.addColorStop(1, "rgba(244, 88, 0, 0.015)");
+  fill.addColorStop(0, "rgba(0, 133, 124, 0.24)");
+  fill.addColorStop(1, "rgba(0, 133, 124, 0.015)");
   context.beginPath();
   context.moveTo(points[0].x, height - padding.bottom);
   points.forEach((point) => context.lineTo(point.x, point.y));
@@ -964,7 +973,7 @@ function drawMonthlyChart(records) {
     if (index === 0) context.moveTo(point.x, point.y);
     else context.lineTo(point.x, point.y);
   });
-  context.strokeStyle = "#f45800";
+  context.strokeStyle = "#00857c";
   context.lineWidth = 2.5;
   context.lineJoin = "round";
   context.lineCap = "round";
@@ -977,7 +986,7 @@ function drawMonthlyChart(records) {
       context.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
       context.fillStyle = "#fff";
       context.fill();
-      context.strokeStyle = "#f45800";
+      context.strokeStyle = "#00857c";
       context.lineWidth = 2;
       context.stroke();
     }
@@ -1231,20 +1240,30 @@ function translateAndRender() {
   closeCustomerSuggestions();
   if (!isConfigured()) {
     showSetupState();
-  } else if (!state.session) {
+  } else if (!DASHBOARD_CONFIG.publicReadOnly && !state.session) {
     showConnectState({
       denied: elements.connectionPill.dataset.state === "error",
     });
   } else {
     showDashboard();
   }
-  if (state.allRecords.length) {
+  if (DASHBOARD_CONFIG.publicReadOnly || state.allRecords.length) {
     populateFilters();
     render();
   }
 }
 
 async function fetchDashboardData() {
+  if (DASHBOARD_CONFIG.publicReadOnly) {
+    const { data: rows, error } = await supabaseClient
+      .from("lab_result_rows")
+      .select("test_id,test_date,customer_name,farm_name,lab_name,area,field_force,sample_type,test_category,detail,result,sample_count,status,quality_flag,added_at")
+      .eq("status", "Complete")
+      .order("test_date", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+    return { access: null, rows };
+  }
   const email = state.session?.user?.email?.toLowerCase();
   if (!email) {
     const error = new Error("Missing authenticated email");
@@ -1289,7 +1308,7 @@ async function fetchDashboardData() {
 function startAutoRefresh() {
   clearInterval(state.refreshTimer);
   state.refreshTimer = setInterval(() => {
-    if (state.session) loadData({ silent: true });
+    if (DASHBOARD_CONFIG.publicReadOnly || state.session) loadData({ silent: true });
   }, DASHBOARD_CONFIG.refreshIntervalMs);
 }
 
@@ -1313,7 +1332,7 @@ async function handleExpiredSession() {
 }
 
 async function loadData({ silent = false } = {}) {
-  if (state.loading || !state.session) return;
+  if (state.loading || (!DASHBOARD_CONFIG.publicReadOnly && !state.session)) return;
   setLoading(true, !silent);
   try {
     const payload = await fetchDashboardData();
@@ -1337,7 +1356,7 @@ async function loadData({ silent = false } = {}) {
       showConnectState({ denied: true });
       showAuthMessage(t("accessDeniedDescription"), "error");
     } else {
-      setConnection("error", "connectionError");
+      setConnection("error", DASHBOARD_CONFIG.publicReadOnly ? "dataUnavailable" : "connectionError");
       showToast(t("generalError"), "error");
       console.error(error);
     }
@@ -1571,12 +1590,21 @@ async function initialize() {
     DASHBOARD_CONFIG.supabasePublishableKey,
     {
       auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
+        persistSession: !DASHBOARD_CONFIG.publicReadOnly,
+        autoRefreshToken: !DASHBOARD_CONFIG.publicReadOnly,
+        detectSessionInUrl: !DASHBOARD_CONFIG.publicReadOnly,
+        storageKey: DASHBOARD_CONFIG.publicReadOnly ? "lab-dashboard-public" : "lab-dashboard-auth",
       },
     },
   );
+
+  if (DASHBOARD_CONFIG.publicReadOnly) {
+    showDashboard();
+    populateFilters();
+    render();
+    await loadData();
+    return;
+  }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     state.session = session;
@@ -1608,3 +1636,4 @@ async function initialize() {
 }
 
 initialize();
+

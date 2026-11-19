@@ -7,7 +7,6 @@ const requiredFiles = [
   "app.js",
   "dashboard-core.js",
   "config.js",
-  "assets/zoetis-logo.png",
   "vendor/supabase.js",
   ".nojekyll",
 ];
@@ -44,6 +43,9 @@ assert.match(app, /authorized_users/);
 assert.match(app, /lab_result_rows/);
 assert.match(app, /setInterval/);
 assert.match(config, /https:\/\/leuqbsfyypfhhypfsjpx\.supabase\.co/);
+assert.match(config, /publicReadOnly: true/);
+assert.doesNotMatch(html, /zoetis|<img/i);
+assert.match(app, /if \(DASHBOARD_CONFIG.publicReadOnly\)/);
 assert.match(config, /sb_publishable_[A-Za-z0-9_-]+/);
 assert.doesNotMatch(html, /accounts\.google\.com|Continue with Google/);
 assert.doesNotMatch(app, /google\.accounts|spreadsheets\.readonly|values:batchGet/);
@@ -55,3 +57,4 @@ assert.doesNotMatch(app, /\b(?:ELI|HIT|AST|BAC)-\d/);
 assert.doesNotMatch(html, /\b(?:ELI|HIT|AST|BAC)-\d/);
 
 console.log("Static dashboard validation passed.");
+

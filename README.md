@@ -1,9 +1,21 @@
 # Lab Analysis Dashboard
 
-A bilingual Zoetis-styled dashboard for completed laboratory tests, published
-on GitHub Pages with private email/password access.
+A bilingual poultry laboratory dashboard in teal, white and navy, without logos,
+published on GitHub Pages. Temporary public read-only mode is enabled.
 
-## Security model
+## Temporary public access
+
+`config.js` sets `publicReadOnly: true`. The dashboard loads immediately without
+sign-in. The anonymous database role can read only completed result rows and the
+columns needed by the dashboard. It cannot read the approved-user list, submitter
+emails or raw payloads, and has no write access. Anyone with the link can view
+completed results during this period.
+
+To restore login, first run `supabase/restore-login.sql`, then set
+`publicReadOnly: false` in `config.js` and publish. Existing user accounts and
+private access policies are preserved.
+
+## Private mode security model
 
 - Supabase Auth handles user passwords and sessions.
 - The public site contains only a Supabase publishable key; it contains no
@@ -49,3 +61,4 @@ history.
 npm test
 npm run build
 ```
+

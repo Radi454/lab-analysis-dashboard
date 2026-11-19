@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Private bilingual dashboard for completed laboratory analysis results."
+      content="Bilingual poultry diagnostics dashboard for completed laboratory analysis results."
     />
-    <meta name="theme-color" content="#f45800" />
+    <meta name="theme-color" content="#00857c" />
     <meta name="referrer" content="no-referrer" />
-    <title>Lab Analysis Dashboard | Zoetis</title>
-    <link rel="icon" href="./assets/zoetis-logo.png" type="image/png" />
+    <title>Poultry Lab | Analysis Dashboard</title>
     <link rel="stylesheet" href="./styles.css" />
     <script src="./vendor/supabase.js"></script>
     <script type="module" src="./app.js"></script>
@@ -19,11 +18,7 @@
     <a class="skip-link" href="#dashboard-main" data-i18n="skip">Skip to dashboard</a>
 
     <header class="topbar">
-      <div class="brand-lockup" aria-label="Zoetis lab analysis dashboard">
-        <span class="logo-window">
-          <img src="./assets/zoetis-logo.png" alt="Zoetis" />
-        </span>
-        <span class="brand-divider" aria-hidden="true"></span>
+      <div class="brand-lockup" aria-label="Poultry laboratory dashboard">
         <span class="brand-copy">
           <strong data-i18n="brandTitle">Lab Analysis</strong>
           <span data-i18n="brandSubtitle">Intelligence dashboard</span>
@@ -56,7 +51,9 @@
     <main id="dashboard-main">
       <section class="hero">
         <div class="hero-copy">
+          <p class="eyebrow" data-i18n="eyebrow">Laboratory performance</p>
           <h1 data-i18n="heroTitle">Completed lab analyses</h1>
+          <p class="hero-description" data-i18n="heroDescription">Poultry diagnostics, brought into focus.</p>
           <div class="freshness-row hidden" id="freshnessRow">
             <span data-i18n="lastUpdated">Updated</span>
             <strong id="lastUpdatedValue" data-i18n="notYet">Not yet</strong>
@@ -64,7 +61,7 @@
         </div>
       </section>
 
-      <section class="access-panel" id="accessPanel" aria-labelledby="accessTitle">
+      <section class="access-panel hidden" id="accessPanel" aria-labelledby="accessTitle">
         <div class="access-copy">
           <h2 id="accessTitle" data-i18n="signInTitle">Sign in to view results</h2>
           <p class="hidden" id="accessDescription"></p>
@@ -347,7 +344,7 @@
     </main>
 
     <footer>
-      <span>© 2026 Zoetis Services LLC</span>
+      <span>Poultry Lab · Analysis Dashboard</span>
     </footer>
 
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
@@ -357,3 +354,4 @@
     </div>
   </body>
 </html>
+
